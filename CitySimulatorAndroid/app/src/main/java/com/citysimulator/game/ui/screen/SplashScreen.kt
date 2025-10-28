@@ -20,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.platform.LocalView
+import android.view.View
 
 /**
  * 启动加载页面
@@ -33,6 +36,17 @@ import kotlinx.coroutines.delay
 fun SplashScreen(
     onNavigateToMain: () -> Unit
 ) {
+    // 设置系统栏为透明
+    val view = LocalView.current
+    LaunchedEffect(Unit) {
+        val window = (view.context as? android.app.Activity)?.window
+        window?.let {
+            WindowCompat.setDecorFitsSystemWindows(it, false)
+            it.statusBarColor = android.graphics.Color.TRANSPARENT
+            it.navigationBarColor = android.graphics.Color.TRANSPARENT
+        }
+    }
+    
     // 动画状态
     val infiniteTransition = rememberInfiniteTransition(label = "splash")
     

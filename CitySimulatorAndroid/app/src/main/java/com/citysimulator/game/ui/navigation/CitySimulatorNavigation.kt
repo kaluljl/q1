@@ -280,6 +280,17 @@ fun CitySimulatorNavigation(
             val gameYear = remember(calendar) { calendar.get(java.util.Calendar.YEAR) }
             val gameMonth = remember(calendar) { calendar.get(java.util.Calendar.MONTH) + 1 }
             
+            // 获取格式化的游戏时间
+            val gameTimeString = remember(gameDate) {
+                val cal = java.util.Calendar.getInstance().apply { time = gameDate }
+                val year = cal.get(java.util.Calendar.YEAR)
+                val month = cal.get(java.util.Calendar.MONTH) + 1
+                val day = cal.get(java.util.Calendar.DAY_OF_MONTH)
+                val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                val minute = cal.get(java.util.Calendar.MINUTE)
+                String.format("%d年%02d月%02d日 %02d:%02d", year, month, day, hour, minute)
+            }
+            
             // 初始化时生成反馈（只在首次加载且为空时）
             LaunchedEffect(Unit) {
                 if (feedbacks.isEmpty()) {
@@ -289,7 +300,8 @@ fun CitySimulatorNavigation(
                         goldAmount = goldAmount,
                         population = population,
                         gameYear = gameYear,
-                        gameMonth = gameMonth
+                        gameMonth = gameMonth,
+                        gameTime = gameTimeString
                     )
                 }
             }
@@ -302,7 +314,7 @@ fun CitySimulatorNavigation(
                     navController.popBackStack()
                 },
                 onResolveFeedback = { feedbackId ->
-                    feedbackViewModel.resolveFeedback(feedbackId)
+                    feedbackViewModel.resolveFeedback(feedbackId, gameTimeString)
                 },
                 onDeleteFeedback = { feedbackId ->
                     feedbackViewModel.deleteFeedback(feedbackId)
@@ -315,7 +327,8 @@ fun CitySimulatorNavigation(
                         goldAmount = goldAmount,
                         population = population,
                         gameYear = gameYear,
-                        gameMonth = gameMonth
+                        gameMonth = gameMonth,
+                        gameTime = gameTimeString
                     )
                 }
             )

@@ -1,0 +1,148 @@
+//
+//  CitySimulator.xcdatamodeld
+//  CitySimulator
+//
+//  Created by AI进化论-花生 on 2024/01/01.
+//
+
+import Foundation
+import CoreData
+
+// Core Data实体定义
+extension CityEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<CityEntity> {
+        return NSFetchRequest<CityEntity>(entityName: "CityEntity")
+    }
+    
+    @NSManaged public var name: String
+    @NSManaged public var level: Int32
+    @NSManaged public var experience: Int32
+    @NSManaged public var gridSize: Int32
+    @NSManaged public var foundedDate: Date
+    @NSManaged public var lastPlayedDate: Date
+    @NSManaged public var totalBuildings: Int32
+    @NSManaged public var totalPopulation: Int32
+    @NSManaged public var totalIncome: Double
+    @NSManaged public var totalExpenses: Double
+    @NSManaged public var happiness: Double
+    @NSManaged public var environment: Double
+}
+
+extension BuildingEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<BuildingEntity> {
+        return NSFetchRequest<BuildingEntity>(entityName: "BuildingEntity")
+    }
+    
+    @NSManaged public var id: UUID
+    @NSManaged public var type: String
+    @NSManaged public var level: Int32
+    @NSManaged public var positionX: Int32
+    @NSManaged public var positionY: Int32
+    @NSManaged public var buildTime: Date
+    @NSManaged public var lastUpgradeTime: Date?
+    @NSManaged public var lastMaintenanceTime: Date
+    @NSManaged public var capacity: Int32
+    @NSManaged public var income: Double
+    @NSManaged public var maintenanceCost: Double
+    @NSManaged public var happinessBonus: Double
+    @NSManaged public var pollutionLevel: Double
+    @NSManaged public var isUnderConstruction: Bool
+    @NSManaged public var isMaintenanceRequired: Bool
+    @NSManaged public var isUpgrading: Bool
+}
+
+extension ResourceEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<ResourceEntity> {
+        return NSFetchRequest<ResourceEntity>(entityName: "ResourceEntity")
+    }
+    
+    @NSManaged public var type: String
+    @NSManaged public var amount: Double
+    @NSManaged public var maxCapacity: Double
+    @NSManaged public var productionRate: Double
+    @NSManaged public var consumptionRate: Double
+}
+
+extension PopulationEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<PopulationEntity> {
+        return NSFetchRequest<PopulationEntity>(entityName: "PopulationEntity")
+    }
+    
+    @NSManaged public var id: UUID
+    @NSManaged public var name: String
+    @NSManaged public var age: Int32
+    @NSManaged public var job: String?
+    @NSManaged public var education: String
+    @NSManaged public var health: String
+    @NSManaged public var happiness: Double
+    @NSManaged public var income: Double
+    @NSManaged public var residence: UUID?
+    @NSManaged public var workplace: UUID?
+}
+
+extension TaskEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<TaskEntity> {
+        return NSFetchRequest<TaskEntity>(entityName: "TaskEntity")
+    }
+    
+    @NSManaged public var id: UUID
+    @NSManaged public var title: String
+    @NSManaged public var description: String
+    @NSManaged public var type: String
+    @NSManaged public var status: String
+    @NSManaged public var requirements: Data
+    @NSManaged public var progress: Data
+    @NSManaged public var rewards: Data
+    @NSManaged public var unlockLevel: Int32
+    @NSManaged public var expireTime: Date?
+    @NSManaged public var createdTime: Date
+}
+
+extension AchievementEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<AchievementEntity> {
+        return NSFetchRequest<AchievementEntity>(entityName: "AchievementEntity")
+    }
+    
+    @NSManaged public var id: UUID
+    @NSManaged public var title: String
+    @NSManaged public var description: String
+    @NSManaged public var type: String
+    @NSManaged public var rarity: String
+    @NSManaged public var isUnlocked: Bool
+    @NSManaged public var unlockCondition: Data
+    @NSManaged public var currentProgress: Data
+    @NSManaged public var rewards: Data
+    @NSManaged public var unlockLevel: Int32
+    @NSManaged public var unlockedTime: Date?
+}
+
+// Core Data实体类
+@objc(CityEntity)
+public class CityEntity: NSManagedObject {
+    
+}
+
+@objc(BuildingEntity)
+public class BuildingEntity: NSManagedObject {
+    
+}
+
+@objc(ResourceEntity)
+public class ResourceEntity: NSManagedObject {
+    
+}
+
+@objc(PopulationEntity)
+public class PopulationEntity: NSManagedObject {
+    
+}
+
+@objc(TaskEntity)
+public class TaskEntity: NSManagedObject {
+    
+}
+
+@objc(AchievementEntity)
+public class AchievementEntity: NSManagedObject {
+    
+}

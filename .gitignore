@@ -1,0 +1,32 @@
+# Android build and cache
+CitySimulatorAndroid/.gradle/
+CitySimulatorAndroid/build/
+CitySimulatorAndroid/app/build/
+CitySimulatorAndroid/app/.cxx/
+CitySimulatorAndroid/.idea/
+
+# iOS/Xcode build
+CitySimulator/DerivedData/
+CitySimulator/build/
+
+# Generated and binaries
+**/*.class
+**/*.bin
+**/*.apk
+**/*.aab
+**/*.ipa
+**/*.o
+**/*.so
+**/*.dll
+**/*.dSYM/
+
+# Tools large artifacts
+tools/*.jar
+tools/*.zip
+
+# Node
+node_modules/
+
+# Misc
+.DS_Store
+*.log

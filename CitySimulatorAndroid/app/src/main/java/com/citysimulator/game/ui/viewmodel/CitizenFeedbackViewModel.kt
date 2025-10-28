@@ -43,6 +43,7 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
      * 根据城市状态生成反馈（每个游戏月生成一次）
      * @param gameYear 当前游戏年份
      * @param gameMonth 当前游戏月份（1-12）
+     * @param gameTime 游戏时间字符串（格式：yyyy年MM月dd日 HH:mm）
      */
     fun generateFeedback(
         buildings: List<Building>,
@@ -50,7 +51,8 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
         goldAmount: Int,
         population: Int,
         gameYear: Int,
-        gameMonth: Int
+        gameMonth: Int,
+        gameTime: String
     ) {
         viewModelScope.launch {
             try {
@@ -72,7 +74,8 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
                     buildings = buildings,
                     resources = resources,
                     goldAmount = goldAmount,
-                    population = population
+                    population = population,
+                    gameTime = gameTime
                 )
                 
                 // 只取前1-3条新反馈
@@ -127,15 +130,16 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
     
     /**
      * 标记反馈为已解决
+     * @param gameTime 游戏时间字符串（格式：yyyy年MM月dd日 HH:mm）
      */
-    fun resolveFeedback(feedbackId: String) {
+    fun resolveFeedback(feedbackId: String, gameTime: String) {
         val currentFeedbacks = _feedbacks.value.toMutableList()
         val index = currentFeedbacks.indexOfFirst { it.id == feedbackId }
         if (index != -1) {
             val feedback = currentFeedbacks[index]
             val updatedFeedback = feedback.copy(
                 isResolved = true,
-                resolvedAt = Date()
+                resolvedAt = gameTime
             )
             currentFeedbacks[index] = updatedFeedback
             _feedbacks.value = currentFeedbacks

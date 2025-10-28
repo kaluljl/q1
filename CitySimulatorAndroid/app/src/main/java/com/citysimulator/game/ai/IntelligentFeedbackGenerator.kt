@@ -46,9 +46,9 @@ data class CitizenFeedbackData(
     val solutions: List<String>,        // 解决方案建议
     val timeLimit: Int,                 // 处理时限（游戏天）
     val icon: String,                   // 图标
-    val createdAt: Date,
+    val createdAt: String,              // 游戏时间字符串（格式：yyyy年MM月dd日 HH:mm）
     val isResolved: Boolean = false,
-    val resolvedAt: Date? = null,
+    val resolvedAt: String? = null,     // 游戏时间字符串
     val escalationLevel: Int = 0        // 升级等级
 )
 
@@ -385,24 +385,26 @@ object IntelligentFeedbackGenerator {
     
     /**
      * 基于城市状态生成心声
+     * @param gameTime 游戏时间字符串（格式：yyyy年MM月dd日 HH:mm）
      */
     fun generateFeedbackBasedOnCity(
         buildings: List<Building>,
         resources: List<Resource>,
         goldAmount: Int,
-        population: Int
+        population: Int,
+        gameTime: String
     ): List<CitizenFeedbackData> {
         val cityMetrics = CityStateAnalyzer.analyzeCityState(buildings, resources, goldAmount, population)
         val feedbacks = mutableListOf<CitizenFeedbackData>()
         
         // 条件触发 - 基于城市状态
-        feedbacks.addAll(generateConditionBasedFeedbacks(cityMetrics))
+        feedbacks.addAll(generateConditionBasedFeedbacks(cityMetrics, gameTime))
         
         // 里程碑触发
-        feedbacks.addAll(generateMilestoneBasedFeedbacks(cityMetrics))
+        feedbacks.addAll(generateMilestoneBasedFeedbacks(cityMetrics, gameTime))
         
         // 时间触发（模拟）
-        feedbacks.addAll(generateTimeBasedFeedbacks(cityMetrics))
+        feedbacks.addAll(generateTimeBasedFeedbacks(cityMetrics, gameTime))
         
         return feedbacks.take(5) // 最多显示5条心声
     }
@@ -410,7 +412,7 @@ object IntelligentFeedbackGenerator {
     /**
      * 生成条件触发的心声
      */
-    private fun generateConditionBasedFeedbacks(metrics: CityStateMetrics): List<CitizenFeedbackData> {
+    private fun generateConditionBasedFeedbacks(metrics: CityStateMetrics, gameTime: String): List<CitizenFeedbackData> {
         val feedbacks = mutableListOf<CitizenFeedbackData>()
         
         // 基础设施问题
@@ -619,7 +621,7 @@ object IntelligentFeedbackGenerator {
     /**
      * 生成里程碑触发的心声
      */
-    private fun generateMilestoneBasedFeedbacks(metrics: CityStateMetrics): List<CitizenFeedbackData> {
+    private fun generateMilestoneBasedFeedbacks(metrics: CityStateMetrics, gameTime: String): List<CitizenFeedbackData> {
         val feedbacks = mutableListOf<CitizenFeedbackData>()
         
         // 人口里程碑
@@ -660,7 +662,7 @@ object IntelligentFeedbackGenerator {
     /**
      * 生成时间触发的心声
      */
-    private fun generateTimeBasedFeedbacks(metrics: CityStateMetrics): List<CitizenFeedbackData> {
+    private fun generateTimeBasedFeedbacks(metrics: CityStateMetrics, gameTime: String): List<CitizenFeedbackData> {
         val feedbacks = mutableListOf<CitizenFeedbackData>()
         
         // 模拟时间触发的心声
@@ -695,7 +697,8 @@ object IntelligentFeedbackGenerator {
         affectedArea: String,
         solutions: List<String>,
         timeLimit: Int,
-        icon: String
+        icon: String,
+        gameTime: String? = null
     ): CitizenFeedbackData {
         return CitizenFeedbackData(
             id = id,
@@ -708,7 +711,7 @@ object IntelligentFeedbackGenerator {
             solutions = solutions,
             timeLimit = timeLimit,
             icon = icon,
-            createdAt = Date()
+            createdAt = gameTime ?: "游戏时间未知"
         )
     }
 }

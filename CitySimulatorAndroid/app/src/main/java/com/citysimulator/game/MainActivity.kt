@@ -19,6 +19,11 @@ import com.citysimulator.game.ui.theme.CitySimulatorTheme
 import com.citysimulator.game.utils.APIKeyInitializer
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import androidx.core.view.WindowCompat
+import android.graphics.Color
+import android.view.View
+import android.os.Build
+import android.view.WindowManager
 
 /**
  * 城市模拟经营游戏主Activity
@@ -37,7 +42,27 @@ class MainActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
         enableEdgeToEdge()
+        
+        // 完全隐藏标题栏和ActionBar
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        )
+        
+        // 设置系统栏为透明
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        
+        // 适配刘海屏
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val lp = window.attributes
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            window.attributes = lp
+        }
         
         // 初始化DeepSeek API密钥(首次启动时自动配置)
         apiKeyInitializer.initializeApiKey("sk-a025e298014e47d7baa61a07f4d4d784")
@@ -103,19 +128,13 @@ fun CitySimulatorApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
     
-    Scaffold(
+    Box(
         modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            CitySimulatorNavigation(
-                navController = navController,
-                context = context
-            )
-        }
+    ) {
+        CitySimulatorNavigation(
+            navController = navController,
+            context = context
+        )
     }
 }
 

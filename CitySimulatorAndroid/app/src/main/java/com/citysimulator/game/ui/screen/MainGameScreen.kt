@@ -169,6 +169,10 @@ fun MainGameScreen(
         val calendar = Calendar.getInstance().apply { time = currentGameDate }
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH 是 0-11
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val minute = calendar.get(Calendar.MINUTE)
+        val gameTimeString = String.format("%d年%02d月%02d日 %02d:%02d", year, month, day, hour, minute)
         
         // 生成市民心声（每个月生成一次）
         feedbackViewModel.generateFeedback(
@@ -177,7 +181,8 @@ fun MainGameScreen(
             goldAmount = goldAmount,
             population = currentPopulation,
             gameYear = year,
-            gameMonth = month
+            gameMonth = month,
+            gameTime = gameTimeString
         )
     }
     

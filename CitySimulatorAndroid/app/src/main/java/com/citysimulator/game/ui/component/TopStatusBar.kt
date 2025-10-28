@@ -62,12 +62,12 @@ fun TopStatusBar(
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(
-                        Color(0xFF1A237E).copy(alpha = 0.95f),
-                        Color(0xFF283593).copy(alpha = 0.95f),
-                        Color(0xFF3F51B5).copy(alpha = 0.95f)
+                        Color(0xFF1E88E5).copy(alpha = 0.95f),
+                        Color(0xFF1976D2).copy(alpha = 0.95f)
                     )
                 )
             )
+            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier

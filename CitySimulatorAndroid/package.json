@@ -1,0 +1,17 @@
+{
+  "name": "citysimulatorandroid",
+  "version": "1.0.0",
+  "description": "城市模拟经营游戏是一款基于Android平台的休闲益智类城市建设游戏。玩家可以在游戏中建设和管理自己的城市，体验从无到有的城市建设过程，培养策略规划能力和创造思维。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}

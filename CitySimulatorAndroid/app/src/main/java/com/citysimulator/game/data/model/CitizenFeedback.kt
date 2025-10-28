@@ -27,14 +27,14 @@ data class CitizenFeedback(
     // 反馈来源
     val source: FeedbackSource,
     
-    // 创建时间
-    val createdAt: Date = Date(),
+    // 创建时间（游戏内时间，格式：yyyy年MM月dd日 HH:mm）
+    val createdAt: String,
     
     // 是否已处理
     val isResolved: Boolean = false,
     
-    // 处理时间
-    val resolvedAt: Date? = null
+    // 处理时间（游戏内时间）
+    val resolvedAt: String? = null
 )
 
 /**
@@ -120,11 +120,13 @@ object CitizenFeedbackGenerator {
     
     /**
      * 根据城市状态生成反馈
+     * @param gameTime 游戏时间字符串（格式：yyyy年MM月dd日 HH:mm）
      */
     fun generateFeedbackFromCityState(
         buildings: List<Building>,
         resources: List<Resource>,
-        prosperity: CityProsperity
+        prosperity: CityProsperity,
+        gameTime: String
     ): List<CitizenFeedback> {
         val feedbacks = mutableListOf<CitizenFeedback>()
         
@@ -136,7 +138,8 @@ object CitizenFeedbackGenerator {
                 type = FeedbackType.NEED_PARK,
                 message = generateFeedback(FeedbackType.NEED_PARK, FeedbackSource.CITIZEN),
                 priority = 3,
-                source = FeedbackSource.CITIZEN
+                source = FeedbackSource.CITIZEN,
+                createdAt = gameTime
             ))
         }
         
@@ -147,7 +150,8 @@ object CitizenFeedbackGenerator {
                 type = FeedbackType.TRAFFIC_CONGESTION,
                 message = generateFeedback(FeedbackType.TRAFFIC_CONGESTION, FeedbackSource.CITIZEN),
                 priority = 4,
-                source = FeedbackSource.CITIZEN
+                source = FeedbackSource.CITIZEN,
+                createdAt = gameTime
             ))
         }
         
@@ -162,7 +166,8 @@ object CitizenFeedbackGenerator {
                 type = FeedbackType.LACK_JOBS,
                 message = generateFeedback(FeedbackType.LACK_JOBS, FeedbackSource.CITIZEN),
                 priority = 4,
-                source = FeedbackSource.CITIZEN
+                source = FeedbackSource.CITIZEN,
+                createdAt = gameTime
             ))
         }
         
@@ -176,7 +181,8 @@ object CitizenFeedbackGenerator {
                 type = FeedbackType.HOUSING_SHORTAGE,
                 message = generateFeedback(FeedbackType.HOUSING_SHORTAGE, FeedbackSource.CITIZEN),
                 priority = 5,
-                source = FeedbackSource.CITIZEN
+                source = FeedbackSource.CITIZEN,
+                createdAt = gameTime
             ))
         }
         

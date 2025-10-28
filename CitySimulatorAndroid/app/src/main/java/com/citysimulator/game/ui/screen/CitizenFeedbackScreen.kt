@@ -295,7 +295,7 @@ private fun FeedbackCard(
                 )
                 
             Text(
-                text = formatTimestamp(feedback.createdAt),
+                text = feedback.createdAt,
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -393,18 +393,3 @@ private fun getFeedbackSourceLabel(source: com.citysimulator.game.data.model.Fee
     }
 }
 
-@Composable
-private fun formatTimestamp(timestamp: java.util.Date): String {
-    val now = java.util.Date()
-    val diff = now.time - timestamp.time
-    val minutes = diff / (1000 * 60)
-    val hours = diff / (1000 * 60 * 60)
-    val days = diff / (1000 * 60 * 60 * 24)
-    
-    return when {
-        minutes < 60 -> "${minutes}分钟前"
-        hours < 24 -> "${hours}小时前"
-        days < 7 -> "${days}天前"
-        else -> java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault()).format(timestamp)
-    }
-}
