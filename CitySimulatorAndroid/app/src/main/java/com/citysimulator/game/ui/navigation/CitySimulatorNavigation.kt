@@ -40,6 +40,7 @@ import com.citysimulator.game.ui.screen.CitizenDetailScreen
 import com.citysimulator.game.ui.screen.CitizenAIChatScreen
 import com.citysimulator.game.ui.screen.SimplifiedBuildingMenuScreen
 import com.citysimulator.game.ui.screen.TaskListScreen
+import com.citysimulator.game.ui.screen.SplashScreen
 import com.citysimulator.game.ui.viewmodel.BuildingPlacementViewModel
 import com.citysimulator.game.ui.viewmodel.TaskViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -53,6 +54,7 @@ import java.util.Date
  * @since 1.0
  */
 object CitySimulatorRoutes {
+    const val SPLASH = "splash"
     const val MAIN_GAME = "main_game"
     const val BUILDING_MENU = "building_menu"
     const val SIMPLIFIED_BUILDING_MENU = "simplified_building_menu"
@@ -84,8 +86,18 @@ fun CitySimulatorNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = CitySimulatorRoutes.MAIN_GAME
+        startDestination = CitySimulatorRoutes.SPLASH
     ) {
+        // 启动加载页
+        composable(CitySimulatorRoutes.SPLASH) {
+            SplashScreen(
+                onNavigateToMain = {
+                    navController.navigate(CitySimulatorRoutes.MAIN_GAME) {
+                        popUpTo(CitySimulatorRoutes.SPLASH) { inclusive = true }
+                    }
+                }
+            )
+        }
         // 主游戏界面
         composable(CitySimulatorRoutes.MAIN_GAME) { backStackEntry ->
             val placementViewModel: BuildingPlacementViewModel = hiltViewModel(

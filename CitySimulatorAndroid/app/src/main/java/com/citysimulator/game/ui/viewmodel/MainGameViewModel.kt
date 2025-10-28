@@ -90,10 +90,12 @@ class MainGameViewModel @Inject constructor(
                 // 加载当前城市
                 val currentCity = cityRepository.getCurrentCity().firstOrNull()
                 
-                // TODO: 仓库未提供 get*ByCityId，这里先置空或读取全部再过滤
-                val buildings: List<Building> = emptyList()
-                val resources: List<Resource> = emptyList()
+                // 从本地数据库加载建筑
+                val buildings: List<Building> = buildingRepository.getAllBuildings().first()
+                val resources: List<Resource> = resourceRepository.getAllResources().first()
                 val population: List<Population> = emptyList()
+                
+                println("📦 从本地数据库加载了 ${buildings.size} 座建筑")
                 
                 _uiState.value = _uiState.value.copy(
                     currentCity = currentCity,
@@ -104,6 +106,8 @@ class MainGameViewModel @Inject constructor(
                     error = null
                 )
             } catch (e: Exception) {
+                println("❌ 加载游戏数据失败: ${e.message}")
+                e.printStackTrace()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.message ?: "加载数据失败"

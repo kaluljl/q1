@@ -43,12 +43,8 @@ class AIDialogueViewModel @Inject constructor(
      */
     fun startConversationWithCitizen(citizen: Citizen) {
         currentCitizen = citizen
-        _messages.value = listOf(
-            ChatMessage(
-                content = generateGreeting(citizen),
-                isUser = false
-            )
-        )
+        // 不再自动添加问候语，让对话从空白开始
+        _messages.value = emptyList()
     }
     
     /**
@@ -149,17 +145,6 @@ class AIDialogueViewModel @Inject constructor(
             } finally {
                 _isLoading.value = false
             }
-        }
-    }
-    
-    /**
-     * 生成问候语
-     */
-    private fun generateGreeting(citizen: Citizen): String {
-        return when {
-            citizen.happiness > 80 -> "你好！很高兴见到你！我最近过得很开心，有什么想聊的吗？"
-            citizen.happiness > 50 -> "嗨，你好。有什么事吗？"
-            else -> "...你好。（看起来有些疲惫）"
         }
     }
     

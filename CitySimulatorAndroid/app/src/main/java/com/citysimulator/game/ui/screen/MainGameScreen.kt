@@ -145,27 +145,18 @@ fun MainGameScreen(
         }
     }
     
-    // ⚠️ 使用remember而不是rememberSaveable，避免保存旧数据导致customName丢失
-    var buildings by remember { mutableStateOf(emptyList<com.citysimulator.game.data.model.Building>()) }
+    // 从 ViewModel 加载建筑数据（从本地数据库持久化存储）
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var buildings by remember { mutableStateOf(uiState.buildings) }
     
-    // 同步现有建筑到数据库（只在首次加载时执行一次）
-    var hasSyncedBuildings by remember { mutableStateOf(false) }
-    
-    // 从Supabase加载建筑数据
-    val supabaseBuildings by supabaseViewModel.buildings.collectAsState()
-    LaunchedEffect(supabaseBuildings) {
-        if (supabaseBuildings.isNotEmpty()) {
-            buildings = supabaseBuildings
-            
-            // 同步建筑到本地数据库（让AI能看到所有建筑）
-            if (!hasSyncedBuildings) {
-                println("🔄 首次加载，同步 ${supabaseBuildings.size} 座建筑到本地数据库...")
-                viewModel.syncBuildingsToDatabase(supabaseBuildings)
-                hasSyncedBuildings = true
-            }
+    // 监听 ViewModel 的建筑数据变化
+    LaunchedEffect(uiState.buildings) {
+        if (uiState.buildings.isNotEmpty() && buildings.isEmpty()) {
+            buildings = uiState.buildings
+            println("📦 从 ViewModel 加载了 ${buildings.size} 座建筑")
             
             // 为已有建筑初始化市民
-            citizenViewModel.initializeCitizens(supabaseBuildings)
+            citizenViewModel.initializeCitizens(buildings)
         }
     }
     
@@ -379,33 +370,7 @@ fun MainGameScreen(
             }
         }
     
-    // 使用简化的状态，但添加一些模拟数据来显示内容
-    val uiState = remember { 
-        MainGameViewModel.MainGameUiState(
-            currentCity = com.citysimulator.game.data.model.City(
-                id = "test_city",
-                name = "测试城市",
-                level = 1,
-                experience = 0,
-                gridSize = 20,
-                foundedDate = Date(),
-                lastPlayedDate = Date(),
-                population = 100,
-                happiness = 80f,
-                environment = 70f,
-                economy = 60f,
-                education = 50f,
-                health = 70f,
-                safety = 80f,
-                transportation = 60f
-            ),
-            buildings = buildings,
-            resources = emptyList(),
-            population = emptyList(),
-            isLoading = false,
-            error = null
-        )
-    }
+    // uiState 已在上面从 ViewModel 加载，这里不需要重复声明
     // 使用游戏时间而不是真实时间
     val gameDate by gameTimeViewModel.gameDate.collectAsStateWithLifecycle()
     val weatherType = remember { WeatherType.SUNNY }
@@ -1205,7 +1170,7 @@ private fun CityGrid(
         horizontalArrangement = Arrangement.spacedBy(0.5.dp),
         verticalArrangement = Arrangement.spacedBy(0.5.dp),
         contentPadding = PaddingValues(0.dp),
-        userScrollEnabled = true
+        userScrollEnabled = false // 禁用滚动，让市民和地图同步
     ) {
         items(gridColumns * gridRows) { index ->
             val x = index % gridColumns
