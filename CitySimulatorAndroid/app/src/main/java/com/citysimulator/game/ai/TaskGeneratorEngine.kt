@@ -59,15 +59,39 @@ class TaskGeneratorEngine {
             ))
         }
         
-        // 建筑任务（基于人口解锁）
-        if (population >= 50) {
-            val buildingTasks = DevelopmentTaskTemplates.getBuildingTasks()
-            for (task in buildingTasks) {
+        // 建筑任务（基于人口解锁，逐步解锁更多任务）
+        val buildingTasks = DevelopmentTaskTemplates.getBuildingTasks()
+        println("📋 检查建筑任务，总数: ${buildingTasks.size}, 当前人口: $population")
+        
+        for (task in buildingTasks) {
+            // 根据任务的触发条件判断是否解锁
+            val shouldUnlock = when {
+                task.trigger == TaskTrigger.POPULATION_MILESTONE && task.triggerValue != null -> {
+                    val requiredPop = task.triggerValue.toIntOrNull() ?: 0
+                    val unlocked = population >= requiredPop
+                    println("  - ${task.title}: 需要人口$requiredPop, ${if (unlocked) "已解锁" else "未解锁"}")
+                    unlocked
+                }
+                task.trigger == TaskTrigger.MANUAL -> {
+                    println("  - ${task.title}: 手动任务，已解锁")
+                    true
+                }
+                else -> {
+                    val unlocked = population >= 30
+                    println("  - ${task.title}: 默认解锁人口30, ${if (unlocked) "已解锁" else "未解锁"}")
+                    unlocked
+                }
+            }
+            
+            if (shouldUnlock) {
                 val targetType = task.targetBuildingType
                 if (targetType != null) {
                     val built = buildingCount[targetType] ?: 0
                     if (built < task.targetValue) {
                         tasks.add(task.copy(currentValue = built))
+                        println("  → 添加任务: ${task.title}")
+                    } else {
+                        println("  → 已完成，跳过: ${task.title}")
                     }
                 }
             }

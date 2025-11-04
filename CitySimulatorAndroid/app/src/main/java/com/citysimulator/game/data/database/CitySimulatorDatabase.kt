@@ -46,7 +46,7 @@ import com.citysimulator.game.data.dao.CityPolicyDao
         Technology::class,
         CityPolicy::class
     ],
-    version = 6,  // 再次增加版本号，强制重建数据库
+    version = 7,  // 添加索引优化
     exportSchema = false
 )
 @TypeConverters(
@@ -59,7 +59,7 @@ import com.citysimulator.game.data.dao.CityPolicyDao
 abstract class CitySimulatorDatabase : RoomDatabase() {
     
     companion object {
-        const val VERSION = 6  // 再次增加版本号，强制重建数据库
+        const val VERSION = 7  // 添加索引优化
         private const val DATABASE_NAME = "city_simulator_database"
         
         @Volatile

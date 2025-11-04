@@ -47,41 +47,16 @@ fun SplashScreen(
         }
     }
     
-    // 动画状态
-    val infiniteTransition = rememberInfiniteTransition(label = "splash")
-    
-    // Logo 缩放动画
-    val logoScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = EaseInOut),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "logoScale"
-    )
-    
-    // 渐显动画
+    // 优化：简化动画，只保留渐显动画
     val alpha by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(1000),
+        animationSpec = tween(800),
         label = "alpha"
     )
     
-    // 加载进度动画
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "progress"
-    )
-    
-    // 延迟后跳转
+    // 延迟后跳转（优化：缩短加载时间）
     LaunchedEffect(Unit) {
-        delay(2000)
+        delay(1500) // 从2秒缩短到1.5秒
         onNavigateToMain()
     }
     
@@ -104,14 +79,12 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.alpha(alpha)
         ) {
-            // Logo/Icon
+            // Logo/Icon（优化：移除缩放动画）
             Icon(
                 imageVector = Icons.Default.LocationCity,
                 contentDescription = "App Logo",
                 tint = Color.White,
-                modifier = Modifier
-                    .size(120.dp)
-                    .scale(logoScale)
+                modifier = Modifier.size(120.dp)
             )
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -136,9 +109,8 @@ fun SplashScreen(
             
             Spacer(modifier = Modifier.height(48.dp))
             
-            // 加载进度条
+            // 加载进度条（优化：使用不确定进度，性能更好）
             CircularProgressIndicator(
-                progress = progress,
                 modifier = Modifier.size(40.dp),
                 color = Color.White,
                 strokeWidth = 3.dp,

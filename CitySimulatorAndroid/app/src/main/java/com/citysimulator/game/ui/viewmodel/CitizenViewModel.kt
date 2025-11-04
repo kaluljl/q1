@@ -34,6 +34,22 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
     private val _citizenThoughts = MutableStateFlow<Map<String, List<CitizenThought>>>(emptyMap())
     val citizenThoughts: StateFlow<Map<String, List<CitizenThought>>> = _citizenThoughts.asStateFlow()
     
+    // 市民人格数据缓存（确保人格固定）
+    private val _citizenPersonalities = MutableStateFlow<Map<String, PersonalityTraits>>(emptyMap())
+    val citizenPersonalities: StateFlow<Map<String, PersonalityTraits>> = _citizenPersonalities.asStateFlow()
+    
+    // 市民需求缓存
+    private val _citizenNeeds = MutableStateFlow<Map<String, MaslowNeeds>>(emptyMap())
+    val citizenNeeds: StateFlow<Map<String, MaslowNeeds>> = _citizenNeeds.asStateFlow()
+    
+    // 市民记忆缓存
+    private val _citizenMemories = MutableStateFlow<Map<String, CitizenMemoryCollection>>(emptyMap())
+    val citizenMemories: StateFlow<Map<String, CitizenMemoryCollection>> = _citizenMemories.asStateFlow()
+    
+    // 社交网络缓存
+    private val _socialNetworks = MutableStateFlow<Map<String, SocialNetwork>>(emptyMap())
+    val socialNetworks: StateFlow<Map<String, SocialNetwork>> = _socialNetworks.asStateFlow()
+    
     private var isSimulating = false
     
     /**
@@ -41,12 +57,18 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
      */
     fun initializeCitizens(buildings: List<Building>) {
         viewModelScope.launch {
+            println("👥 [CitizenViewModel] 开始初始化市民，建筑数量: ${buildings.size}")
             val newCitizens = CitizenGenerator.generateInitialCitizens(buildings)
             _citizens.value = newCitizens
             println("🏠 为 ${buildings.size} 个建筑生成了 ${newCitizens.size} 个市民")
             
             // 启动模拟
-            startSimulation(buildings)
+            if (newCitizens.isNotEmpty()) {
+                println("🎬 启动市民模拟系统...")
+                startSimulation(buildings)
+            } else {
+                println("⚠️ 没有市民，无法启动模拟")
+            }
         }
     }
     
@@ -154,36 +176,53 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
      * 启动模拟
      */
     private fun startSimulation(buildings: List<Building>) {
-        if (isSimulating) return
+        if (isSimulating) {
+            println("⚠️ 模拟已在运行中")
+            return
+        }
         isSimulating = true
+        println("✅ 市民模拟系统已启动！建筑数量: ${buildings.size}")
         
         viewModelScope.launch {
+            var updateCount = 0
+            var buildingList = buildings
+            
             while (isSimulating) {
+                // 优化：市民模拟频率 3 秒（让市民有明显移动）
+                delay(3000)
+                
+                updateCount++
                 val currentTime = Date()
                 
-                // 更新所有市民
+                // 优化：更新50%的市民（让城市看起来更有活力）
+                val updatePercentage = 0.5f
+                val citizensToUpdate = _citizens.value.shuffled().take((_citizens.value.size * updatePercentage).toInt().coerceAtLeast(5))
+                
+                if (updateCount % 10 == 0) {
+                    println("🔄 [更新 #$updateCount] 正在更新 ${citizensToUpdate.size}/${_citizens.value.size} 个市民...")
+                }
+                
                 val updatedCitizens = _citizens.value.map { citizen ->
-                    simulationEngine.updateCitizen(citizen, currentTime, buildings)
+                    if (citizen in citizensToUpdate) {
+                        val updated = simulationEngine.updateCitizen(citizen, currentTime, buildingList)
+                        // 每100次更新输出一次移动日志
+                        if (updateCount % 100 == 0 && citizen.id == _citizens.value.first().id) {
+                            println("👤 市民 ${citizen.name}: (${citizen.currentX},${citizen.currentY}) -> (${updated.currentX},${updated.currentY}), 活动: ${updated.currentActivity}")
+                        }
+                        updated
+                    } else {
+                        citizen
+                    }
                 }
                 _citizens.value = updatedCitizens
                 
-                // 生成部分市民的想法（随机选择10%）
-                val thoughtsMap = _citizenThoughts.value.toMutableMap()
-                updatedCitizens.filter { Random.nextFloat() < 0.1f }.forEach { citizen ->
-                    simulationEngine.generateThought(citizen, buildings)?.let { thought ->
-                        val existingThoughts = thoughtsMap[citizen.id] ?: emptyList()
-                        thoughtsMap[citizen.id] = (existingThoughts + thought).takeLast(10)
-                    }
-                }
-                _citizenThoughts.value = thoughtsMap
+                // 优化：完全禁用想法生成（性能瓶颈）
+                // _citizenThoughts.value = emptyMap()
                 
                 // 更新选中的市民
                 _selectedCitizen.value?.let { selected ->
                     _selectedCitizen.value = updatedCitizens.find { it.id == selected.id }
                 }
-                
-                // 每5秒更新一次
-                delay(5000)
             }
         }
     }
@@ -207,6 +246,224 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
      */
     fun deselectCitizen() {
         _selectedCitizen.value = null
+    }
+    
+    /**
+     * 获取或生成市民的固定人格
+     * 如果市民已有人格则返回，否则生成新的并缓存
+     */
+    fun getOrGeneratePersonality(citizenId: String): PersonalityTraits {
+        // 先检查缓存
+        _citizenPersonalities.value[citizenId]?.let { return it }
+        
+        // 生成新人格并缓存
+        val newPersonality = PersonalityTraits.generateRandom()
+        _citizenPersonalities.value = _citizenPersonalities.value + (citizenId to newPersonality)
+        
+        println("🎭 为市民 $citizenId 生成新人格: ${newPersonality.getDominantPersonalityType().getDisplayName()}")
+        return newPersonality
+    }
+    
+    /**
+     * 更新市民人格（用于重大事件影响）
+     */
+    fun updatePersonality(citizenId: String, newPersonality: PersonalityTraits) {
+        _citizenPersonalities.value = _citizenPersonalities.value + (citizenId to newPersonality)
+        println("🎭 市民 $citizenId 的人格发生了变化")
+    }
+    
+    /**
+     * 获取或生成市民的需求数据
+     */
+    fun getOrGenerateNeeds(citizenId: String, citizen: Citizen): MaslowNeeds {
+        _citizenNeeds.value[citizenId]?.let { return it }
+        
+        // 使用默认构造函数暂时简化（未来可以扩展）
+        val needs = MaslowNeeds()
+        
+        _citizenNeeds.value = _citizenNeeds.value + (citizenId to needs)
+        println("🎯 为市民 $citizenId 生成需求数据")
+        return needs
+    }
+    
+    /**
+     * 获取或生成市民的记忆
+     */
+    fun getOrGenerateMemories(citizenId: String, citizen: Citizen): CitizenMemoryCollection {
+        _citizenMemories.value[citizenId]?.let { return it }
+        
+        val collection = CitizenMemoryCollection(citizenId)
+        
+        // 出生记忆
+        collection.addMemory(CitizenMemory(
+            citizenId = citizenId,
+            timestamp = citizen.birthDate,
+            eventType = MemoryEventType.BIRTH,
+            title = "来到这个世界",
+            description = "在这座城市中诞生，开始了人生旅程",
+            emotionalImpact = 0.8f,
+            importance = MemoryImportance.MAJOR
+        ))
+        
+        // 工作记忆
+        if (citizen.occupation != null) {
+            collection.addMemory(CitizenMemory(
+                citizenId = citizenId,
+                timestamp = java.util.Date(java.util.Date().time - 180L * 24 * 60 * 60 * 1000),
+                eventType = MemoryEventType.FIRST_JOB,
+                title = "开始职业生涯",
+                description = "成为了${citizen.occupation}，踏上职业道路",
+                emotionalImpact = 0.7f,
+                importance = MemoryImportance.SIGNIFICANT
+            ))
+        }
+        
+        // 婚姻记忆
+        if (citizen.maritalStatus == MaritalStatus.MARRIED) {
+            collection.addMemory(CitizenMemory(
+                citizenId = citizenId,
+                timestamp = java.util.Date(java.util.Date().time - 365L * 24 * 60 * 60 * 1000),
+                eventType = MemoryEventType.FELL_IN_LOVE,
+                title = "步入婚姻殿堂",
+                description = "与心爱的人结为伴侣，开始新的生活",
+                emotionalImpact = 0.9f,
+                importance = MemoryImportance.MAJOR
+            ))
+        }
+        
+        // 负面记忆（如果抱怨多）
+        if (citizen.complaints > 3) {
+            collection.addMemory(CitizenMemory(
+                citizenId = citizenId,
+                timestamp = java.util.Date(java.util.Date().time - 30L * 24 * 60 * 60 * 1000),
+                eventType = MemoryEventType.LOST_FRIEND,
+                title = "对城市管理感到失望",
+                description = "多次反映问题但未得到满意的答复",
+                emotionalImpact = -0.6f,
+                importance = MemoryImportance.SIGNIFICANT
+            ))
+        }
+        
+        _citizenMemories.value = _citizenMemories.value + (citizenId to collection)
+        println("📖 为市民 $citizenId 生成${collection.memories.size}条记忆")
+        return collection
+    }
+    
+    // ================== 市长建议系统 ==================
+    
+    /**
+     * 市民对市长的信任度缓存
+     */
+    private val _citizenTrust = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val citizenTrust: StateFlow<Map<String, Float>> = _citizenTrust.asStateFlow()
+    
+    /**
+     * 获取市民对市长的信任度
+     */
+    fun getCitizenTrust(citizenId: String): Float {
+        return _citizenTrust.value[citizenId] ?: 0.5f // 默认50%信任度
+    }
+    
+    /**
+     * 更新市民对市长的信任度
+     */
+    fun updateCitizenTrust(citizenId: String, newTrust: Float) {
+        _citizenTrust.value = _citizenTrust.value + (citizenId to newTrust.coerceIn(0f, 1f))
+    }
+    
+    // ================== 社交网络系统 ==================
+    
+    /**
+     * 获取或生成市民的社交网络
+     */
+    fun getOrGenerateSocialNetwork(citizenId: String): SocialNetwork {
+        _socialNetworks.value[citizenId]?.let { return it }
+        
+        val network = SocialNetwork(citizenId)
+        val citizen = _citizens.value.find { it.id == citizenId } ?: return network
+        val allCitizens = _citizens.value
+        
+        // 找同事（工作地点相同）
+        if (citizen.workplaceX != null && citizen.workplaceY != null) {
+            val colleagues = allCitizens.filter { 
+                it.id != citizenId && 
+                it.workplaceX == citizen.workplaceX && 
+                it.workplaceY == citizen.workplaceY 
+            }.take(2)
+            
+            colleagues.forEach { colleague ->
+                network.addRelationship(SocialRelationship(
+                    citizen1Id = citizenId,
+                    citizen2Id = colleague.id,
+                    relationshipType = RelationshipType.COLLEAGUE,
+                    intimacy = 0.4f + kotlin.random.Random.nextFloat() * 0.3f,
+                    trust = 0.5f + kotlin.random.Random.nextFloat() * 0.3f,
+                    status = RelationshipStatus.ACTIVE
+                ))
+            }
+        }
+        
+        // 找邻居（住址相近）
+        val neighbors = allCitizens.filter {
+            it.id != citizenId &&
+            kotlin.math.abs(it.homeX - citizen.homeX) <= 1 &&
+            kotlin.math.abs(it.homeY - citizen.homeY) <= 1
+        }.take(2)
+        
+        neighbors.forEach { neighbor ->
+            network.addRelationship(SocialRelationship(
+                citizen1Id = citizenId,
+                citizen2Id = neighbor.id,
+                relationshipType = RelationshipType.NEIGHBOR,
+                intimacy = 0.3f + kotlin.random.Random.nextFloat() * 0.4f,
+                trust = 0.4f + kotlin.random.Random.nextFloat() * 0.4f,
+                status = RelationshipStatus.ACTIVE
+            ))
+        }
+        
+        // 如果已婚，尝试找配偶
+        if (citizen.maritalStatus == MaritalStatus.MARRIED && citizen.familyId != null) {
+            val spouse = allCitizens.find { 
+                it.id != citizenId && 
+                it.familyId == citizen.familyId && 
+                it.maritalStatus == MaritalStatus.MARRIED 
+            }
+            
+            if (spouse != null) {
+                network.addRelationship(SocialRelationship(
+                    citizen1Id = citizenId,
+                    citizen2Id = spouse.id,
+                    relationshipType = RelationshipType.SPOUSE,
+                    intimacy = 0.9f + kotlin.random.Random.nextFloat() * 0.1f,
+                    trust = 0.85f + kotlin.random.Random.nextFloat() * 0.15f,
+                    status = RelationshipStatus.ACTIVE
+                ))
+            }
+        }
+        
+        _socialNetworks.value = _socialNetworks.value + (citizenId to network)
+        println("👥 为市民 $citizenId 生成${network.relationships.size}个社交关系")
+        return network
+    }
+    
+    /**
+     * 获取市民相关的八卦（动态生成，反映城市状态）
+     */
+    fun getCitizenGossips(citizenId: String, cityHappiness: Float): List<com.citysimulator.game.ai.Gossip> {
+        val citizen = _citizens.value.find { it.id == citizenId } ?: return emptyList()
+        return com.citysimulator.game.ai.generateGossipsForCitizen(
+            citizenId, _citizens.value, cityHappiness
+        )
+    }
+    
+    /**
+     * 获取市民参与的事件（动态生成，反映城市状态）
+     */
+    fun getCitizenEvents(citizenId: String, cityHappiness: Float): List<com.citysimulator.game.ai.SpontaneousEvent> {
+        val citizen = _citizens.value.find { it.id == citizenId } ?: return emptyList()
+        return com.citysimulator.game.ai.getEventsForCitizen(
+            citizenId, _citizens.value, cityHappiness
+        )
     }
     
     /**

@@ -159,7 +159,7 @@ fun BottomControlBar(
                 icon = Icons.Default.Chat,
                 label = "心声",
                 color = Color(0xFF2196F3),
-                badgeCount = 3, // 示例：有3条新反馈
+                badgeCount = 0,
                 onClick = onCitizenFeedbackClick
             )
             

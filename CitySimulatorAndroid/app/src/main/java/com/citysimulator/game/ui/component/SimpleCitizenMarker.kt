@@ -1,6 +1,8 @@
 package com.citysimulator.game.ui.component
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -8,32 +10,72 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.citysimulator.game.data.model.Citizen
+import com.citysimulator.game.data.model.CitizenActivity
 import com.citysimulator.game.data.model.Gender
 
 /**
- * 简单市民标记
+ * 改进的市民标记 - 更好的视觉效果
  * 
- * 在城市网格上显示简单的市民图标
+ * 特性：
+ * - 更大更清晰的图标
+ * - 渐变色背景
+ * - 呼吸动画效果
+ * - 阴影和边框
+ * - 根据活动显示不同图标
  */
 @Composable
 fun SimpleCitizenMarker(
     citizen: Citizen,
     modifier: Modifier = Modifier
 ) {
+    // 呼吸动画效果
+    val infiniteTransition = rememberInfiniteTransition(label = "citizen_breathe")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+    
     Box(
         modifier = modifier
-            .size(12.dp)
+            .size(16.dp) // 增大尺寸从12dp -> 16dp
+            .scale(scale) // 添加呼吸动画
+            .shadow(
+                elevation = 4.dp,
+                shape = CircleShape,
+                spotColor = getCitizenColor(citizen).copy(alpha = 0.5f)
+            )
             .clip(CircleShape)
-            .background(getCitizenColor(citizen)),
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        getCitizenColor(citizen).copy(alpha = 0.9f),
+                        getCitizenColor(citizen).copy(alpha = 0.6f)
+                    )
+                )
+            )
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.6f),
+                shape = CircleShape
+            ),
         contentAlignment = Alignment.Center
     ) {
+        // 根据活动显示不同的emoji
         Text(
-            text = if (citizen.gender == Gender.MALE) "👨" else "👩",
-            fontSize = 8.sp
+            text = getCitizenEmoji(citizen),
+            fontSize = 10.sp
         )
     }
 }
@@ -72,13 +114,24 @@ fun CitizenOverlay(
 }
 
 /**
- * 获取市民颜色（根据状态）
+ * 获取市民颜色（根据状态）- 更丰富的颜色系统
  */
 private fun getCitizenColor(citizen: Citizen): Color {
     return when {
-        citizen.happiness > 0.7f -> Color(0xFF4CAF50) // 绿色 - 快乐
+        citizen.happiness > 0.8f -> Color(0xFF66BB6A) // 亮绿色 - 非常快乐
+        citizen.happiness > 0.6f -> Color(0xFF4CAF50) // 绿色 - 快乐
         citizen.happiness > 0.4f -> Color(0xFFFFC107) // 黄色 - 一般
-        else -> Color(0xFFF44336) // 红色 - 不满
+        citizen.happiness > 0.2f -> Color(0xFFFF9800) // 橙色 - 不满
+        else -> Color(0xFFF44336) // 红色 - 很不满
     }
+}
+
+/**
+ * 根据市民活动和性别获取对应的emoji图标
+ * 简化版：只显示人物，通过颜色区分状态
+ */
+private fun getCitizenEmoji(citizen: Citizen): String {
+    // 统一显示人物图标，通过背景颜色来区分心情状态
+    return if (citizen.gender == Gender.MALE) "👨" else "👩"
 }
 

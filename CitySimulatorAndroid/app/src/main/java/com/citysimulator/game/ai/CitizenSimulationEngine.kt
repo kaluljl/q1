@@ -31,8 +31,13 @@ class CitizenSimulationEngine {
         // 根据时间和性格决定活动
         val newActivity = determineActivity(citizen, hour, dayOfWeek)
         
-        // 如果活动改变，更新目标位置
-        val (destX, destY) = if (newActivity != citizen.currentActivity) {
+        // 检查是否已到达目的地
+        val hasReachedDestination = citizen.currentX == citizen.destinationX && 
+                                    citizen.currentY == citizen.destinationY &&
+                                    citizen.destinationX != null
+        
+        // 如果活动改变，或者已到达目的地，更新目标位置
+        val (destX, destY) = if (newActivity != citizen.currentActivity || hasReachedDestination) {
             getDestinationForActivity(citizen, newActivity, buildings)
         } else {
             citizen.destinationX to citizen.destinationY
@@ -186,8 +191,12 @@ class CitizenSimulationEngine {
         buildings: List<Building>
     ): Pair<Int?, Int?> {
         return when (activity) {
-            CitizenActivity.AT_HOME, CitizenActivity.SLEEPING -> 
-                citizen.homeX to citizen.homeY
+            CitizenActivity.AT_HOME, CitizenActivity.SLEEPING -> {
+                // 在家附近随机移动（模拟在家中走动）
+                val offsetX = Random.nextInt(-2, 3)
+                val offsetY = Random.nextInt(-2, 3)
+                (citizen.homeX + offsetX).coerceIn(0, 19) to (citizen.homeY + offsetY).coerceIn(0, 29)
+            }
             
             CitizenActivity.WORKING -> 
                 citizen.workplaceX to citizen.workplaceY
@@ -209,6 +218,14 @@ class CitizenSimulationEngine {
             
             CitizenActivity.PARK, CitizenActivity.EXERCISING -> 
                 findNearestBuilding(citizen, BuildingType.PARK, buildings)
+            
+            // 通勤和闲逛：随机移动
+            CitizenActivity.COMMUTING_TO_WORK, CitizenActivity.COMMUTING_HOME, 
+            CitizenActivity.SOCIALIZING -> {
+                val randomX = Random.nextInt(0, 20)
+                val randomY = Random.nextInt(0, 30)
+                randomX to randomY
+            }
             
             else -> null to null
         }
@@ -261,16 +278,17 @@ class CitizenSimulationEngine {
         
         if (abs(dx) == 0 && abs(dy) == 0) return currentX to currentY
         
-        // 每次更新移动1格
+        // 每次更新移动2-3格（更快速的移动）
+        val speed = 2
         val newX = when {
-            dx > 0 -> currentX + 1
-            dx < 0 -> currentX - 1
+            dx > 0 -> (currentX + speed).coerceAtMost(destX)
+            dx < 0 -> (currentX - speed).coerceAtLeast(destX)
             else -> currentX
         }
         
         val newY = when {
-            dy > 0 -> currentY + 1
-            dy < 0 -> currentY - 1
+            dy > 0 -> (currentY + speed).coerceAtMost(destY)
+            dy < 0 -> (currentY - speed).coerceAtLeast(destY)
             else -> currentY
         }
         

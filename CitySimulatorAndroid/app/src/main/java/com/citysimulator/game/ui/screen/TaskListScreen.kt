@@ -38,10 +38,14 @@ fun TaskListScreen(
     onTaskReject: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    // 获取当前主题
+    val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
+    
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("全部", "新手", "发展", "事件")
     
     Scaffold(
+        containerColor = currentTheme.background,
         topBar = {
             TopAppBar(
                 title = { 
@@ -60,9 +64,9 @@ fun TaskListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1976D2),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = currentTheme.primary,
+                    titleContentColor = currentTheme.textPrimary,
+                    navigationIconContentColor = currentTheme.textPrimary
                 )
             )
         }

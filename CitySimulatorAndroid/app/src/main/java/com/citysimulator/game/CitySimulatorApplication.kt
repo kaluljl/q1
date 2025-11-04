@@ -31,6 +31,10 @@ class CitySimulatorApplication : Application() {
      * - 设置默认值
      */
     private fun initializeApp() {
+        // 初始化全局ThemeManager
+        com.citysimulator.game.ui.theme.ThemeManager.init(this)
+        println("🎨 [CitySimulatorApplication] ThemeManager已初始化")
+        
         // TODO: 添加应用初始化逻辑
         // - 初始化数据库
         // - 设置默认游戏数据

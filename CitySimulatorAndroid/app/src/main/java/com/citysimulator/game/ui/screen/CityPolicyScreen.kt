@@ -41,6 +41,9 @@ fun CityPolicyScreen(
     onGoldChange: (Int) -> Unit = {},
     viewModel: CityPolicyViewModel = hiltViewModel()
 ) {
+    // 获取当前主题
+    val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
+    
     val policies by viewModel.policies.collectAsState()
     val availablePolicies by viewModel.availablePolicies.collectAsState()
     val implementedPolicies by viewModel.implementedPolicies.collectAsState()
@@ -67,7 +70,7 @@ fun CityPolicyScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(com.citysimulator.game.ui.theme.getThemeBackgroundBrush(currentTheme))
     ) {
         // 顶部标题栏
         TopAppBar(
@@ -84,8 +87,9 @@ fun CityPolicyScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = currentTheme.primary,
+                titleContentColor = currentTheme.textPrimary,
+                navigationIconContentColor = currentTheme.textPrimary
             )
         )
         

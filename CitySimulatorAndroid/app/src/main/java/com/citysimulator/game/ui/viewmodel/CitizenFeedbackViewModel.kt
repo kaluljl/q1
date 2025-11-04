@@ -1,5 +1,6 @@
 package com.citysimulator.game.ui.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.citysimulator.game.ai.IntelligentFeedbackGenerator
@@ -22,7 +23,9 @@ import javax.inject.Inject
  * @since 1.0
  */
 @HiltViewModel
-class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
+class CitizenFeedbackViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
     
     private val _feedbacks = MutableStateFlow<List<CitizenFeedback>>(emptyList())
     val feedbacks: StateFlow<List<CitizenFeedback>> = _feedbacks.asStateFlow()
@@ -31,8 +34,16 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
     // 记录上次生成反馈的游戏月份（年*12 + 月）
-    private val _lastGenerationMonth = MutableStateFlow(-1)
+    // 使用 SavedStateHandle 持久化，避免因重建导致每次都当作首次
+    private val _lastGenerationMonth = MutableStateFlow(
+        savedStateHandle.get<Int>("last_generation_month") ?: -1
+    )
     val lastGenerationMonth: StateFlow<Int> = _lastGenerationMonth.asStateFlow()
+    
+    // 是否已初始化（持久化）
+    private var isInitialized: Boolean
+        get() = savedStateHandle.get<Boolean>("feedback_initialized") ?: false
+        set(value) { savedStateHandle["feedback_initialized"] = value }
     
     companion object {
         // 每次生成1-3条新反馈
@@ -59,9 +70,26 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
                 // 计算当前游戏月份ID（年*12 + 月）
                 val currentMonthId = gameYear * 12 + gameMonth
                 
+                // 首次初始化：将当前月份设为上次生成月份，不生成心声（仅一次，且持久化）
+                if (!isInitialized) {
+                    _lastGenerationMonth.value = currentMonthId
+                    savedStateHandle["last_generation_month"] = currentMonthId
+                    isInitialized = true
+                    println("📅 心声系统已初始化：${gameYear}年${gameMonth}月（下个月开始生成心声）")
+                    return@launch
+                }
+                
                 // 检查是否是新的月份
                 if (currentMonthId <= _lastGenerationMonth.value) {
                     // 还在同一个月，不生成新反馈
+                    return@launch
+                }
+                
+                // 如果人口为0，不生成心声（城市还未发展）
+                if (population == 0) {
+                    println("📅 ${gameYear}年${gameMonth}月：城市尚无居民，跳过心声生成")
+                    _lastGenerationMonth.value = currentMonthId
+                    savedStateHandle["last_generation_month"] = currentMonthId
                     return@launch
                 }
                 
@@ -108,6 +136,7 @@ class CitizenFeedbackViewModel @Inject constructor() : ViewModel() {
                 
                 _feedbacks.value = combinedFeedbacks
                 _lastGenerationMonth.value = currentMonthId
+                savedStateHandle["last_generation_month"] = currentMonthId
                 
                 println("💬 ${gameYear}年${gameMonth}月生成了 ${newFeedbacksToAdd.size} 条新心声，当前共 ${combinedFeedbacks.size} 条未解决反馈")
                 

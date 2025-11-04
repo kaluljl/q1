@@ -213,7 +213,8 @@ enum class SimplifiedBuildingType {
     }
     
     /**
-     * 获取每月收入（负数表示维护成本）
+     * 获取每30秒收入（负数表示维护成本）
+     * 游戏内1个月 = 现实30秒
      */
     fun getMonthlyIncome(): Int {
         return when (this) {

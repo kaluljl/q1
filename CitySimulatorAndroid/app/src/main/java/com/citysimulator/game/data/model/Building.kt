@@ -2,6 +2,7 @@ package com.citysimulator.game.data.model
 
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.citysimulator.game.data.converter.DateConverter
@@ -200,7 +201,16 @@ data class BuildingPosition(
  * @author AI进化论-花生
  * @since 1.0
  */
-@Entity(tableName = "buildings")
+@Entity(
+    tableName = "buildings",
+    indices = [
+        Index(value = ["position_x", "position_y"], unique = false),
+        Index(value = ["type"], unique = false),
+        Index(value = ["status"], unique = false),
+        Index(value = ["isUnderConstruction"], unique = false),
+        Index(value = ["isMaintenanceRequired"], unique = false)
+    ]
+)
 @TypeConverters(DateConverter::class)
 data class Building(
     @PrimaryKey

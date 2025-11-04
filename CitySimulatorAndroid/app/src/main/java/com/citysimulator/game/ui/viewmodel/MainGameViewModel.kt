@@ -64,7 +64,7 @@ class MainGameViewModel @Inject constructor(
     val selectedBuilding: StateFlow<Building?> = _selectedBuilding.asStateFlow()
     
     init {
-        // 初始化默认数据，避免空数据导致的问题
+        // 立即设置初始状态为非加载中，显示空建筑列表
         _uiState.value = _uiState.value.copy(
             currentCity = null,
             buildings = emptyList(),
@@ -74,39 +74,39 @@ class MainGameViewModel @Inject constructor(
             error = null
         )
         
-        loadGameData()
+        // 启动响应式数据流监听
+        observeBuildingsFlow()
         startTimeUpdate()
         startWeatherUpdate()
     }
     
     /**
-     * 加载游戏数据
+     * 监听建筑数据流（响应式加载）
      */
-    private fun loadGameData() {
+    private fun observeBuildingsFlow() {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(isLoading = true)
+                println("🔄 开始监听建筑数据流...")
                 
-                // 加载当前城市
-                val currentCity = cityRepository.getCurrentCity().firstOrNull()
-                
-                // 从本地数据库加载建筑
-                val buildings: List<Building> = buildingRepository.getAllBuildings().first()
-                val resources: List<Resource> = resourceRepository.getAllResources().first()
-                val population: List<Population> = emptyList()
-                
-                println("📦 从本地数据库加载了 ${buildings.size} 座建筑")
-                
-                _uiState.value = _uiState.value.copy(
-                    currentCity = currentCity,
-                    buildings = buildings,
-                    resources = resources,
-                    population = population,
-                    isLoading = false,
-                    error = null
-                )
+                // 使用 combine 合并多个数据流
+                combine(
+                    buildingRepository.getAllBuildings(),
+                    resourceRepository.getAllResources()
+                ) { buildings, resources ->
+                    Pair(buildings, resources)
+                }.collect { (buildings, resources) ->
+                    println("📦 建筑数据更新: ${buildings.size} 座建筑")
+                    
+                    _uiState.value = _uiState.value.copy(
+                        buildings = buildings,
+                        resources = resources,
+                        population = emptyList(),
+                        isLoading = false,
+                        error = null
+                    )
+                }
             } catch (e: Exception) {
-                println("❌ 加载游戏数据失败: ${e.message}")
+                println("❌ 监听建筑数据流失败: ${e.message}")
                 e.printStackTrace()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -117,36 +117,75 @@ class MainGameViewModel @Inject constructor(
     }
     
     /**
-     * 开始时间更新
+     * 加载游戏数据（保留用于手动刷新）
+     */
+    private fun loadGameData() {
+        // 现在使用响应式数据流，这个方法主要用于错误恢复
+        viewModelScope.launch {
+            try {
+                val currentCity = cityRepository.getCurrentCity().firstOrNull()
+                _uiState.value = _uiState.value.copy(currentCity = currentCity)
+            } catch (e: Exception) {
+                println("❌ 加载城市数据失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 开始时间更新（优化：降低更新频率）
      */
     private fun startTimeUpdate() {
         viewModelScope.launch {
             while (true) {
                 _currentTime.value = Date()
-                kotlinx.coroutines.delay(1000) // 每秒更新一次
+                // 优化：改为每5秒更新一次，减少UI重组
+                kotlinx.coroutines.delay(5000)
             }
         }
     }
     
     /**
-     * 开始天气更新
+     * 开始天气更新（基于季节和时间）
+     * 
+     * 天气更新逻辑：
+     * - 每30秒检查一次游戏时间
+     * - 如果游戏日期改变，重新生成符合当前季节的天气
+     * - 天气会根据季节自动调整（春雨、夏雷、秋高、冬雪）
      */
     private fun startWeatherUpdate() {
         viewModelScope.launch {
+            var lastGameDay = -1
+            
             while (true) {
-                // 模拟天气变化（每5分钟更新一次）
-                _weatherType.value = getRandomWeatherType()
-                kotlinx.coroutines.delay(5 * 60 * 1000)
+                // 获取当前游戏时间（从 GameTimeViewModel）
+                val currentGameDate = _currentTime.value
+                val calendar = Calendar.getInstance().apply { time = currentGameDate }
+                val currentDay = calendar.get(Calendar.DAY_OF_YEAR)
+                
+                // 如果日期改变了，更新天气
+                if (currentDay != lastGameDay) {
+                    val newWeather = com.citysimulator.game.ai.SeasonalWeatherSystem.generateSeasonalWeather(currentGameDate)
+                    _weatherType.value = newWeather
+                    
+                    val season = com.citysimulator.game.ai.SeasonalWeatherSystem.getSeason(currentGameDate)
+                    val seasonDesc = com.citysimulator.game.ai.SeasonalWeatherSystem.getSeasonDescription(season)
+                    val weatherDesc = com.citysimulator.game.ai.SeasonalWeatherSystem.getWeatherDescription(newWeather)
+                    
+                    println("🌤️ 天气更新: $seasonDesc - $weatherDesc")
+                    lastGameDay = currentDay
+                }
+                
+                // 每30秒检查一次
+                kotlinx.coroutines.delay(30 * 1000)
             }
         }
     }
     
     /**
-     * 获取随机天气类型
+     * 更新当前游戏时间（从 GameTimeViewModel 同步）
      */
-    private fun getRandomWeatherType(): WeatherType {
-        val weatherTypes = WeatherType.values()
-        return weatherTypes.random()
+    fun updateCurrentTime(time: Date) {
+        _currentTime.value = time
     }
     
     /**

@@ -32,22 +32,46 @@ import com.citysimulator.game.data.model.SimplifiedBuildingCategory
 @Composable
 fun SimplifiedBuildingMenuScreen(
     currentGold: Int = 1000,
+    builtWonders: Set<String> = emptySet(),
+    wondersInProgress: Map<String, Int> = emptyMap(),
     onBuildingSelected: (SimplifiedBuildingType) -> Unit = {},
+    onBuildWonder: (com.citysimulator.game.ai.WonderBuilding) -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
+    // 获取当前主题
+    val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
+    
     var selectedCategory by remember { mutableStateOf<SimplifiedBuildingCategory?>(null) }
+    var selectedTab by remember { mutableStateOf(0) }  // 0=普通建筑, 1=奇观
+    
+    // 防抖：记录最后一次点击时间
+    var lastClickTime by remember { mutableStateOf(0L) }
+    
+    // 防抖：记录最后一次返回按钮点击时间
+    var lastBackClickTime by remember { mutableStateOf(0L) }
     
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { 
                     Text(
-                        text = if (selectedCategory == null) "建筑菜单" else selectedCategory!!.getDisplayName(),
+                        text = when {
+                            selectedTab == 1 -> "🏛️ 世界奇观"
+                            selectedCategory != null -> selectedCategory!!.getDisplayName()
+                            else -> "建筑菜单"
+                        },
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = {
+                        // 防抖：避免快速连续点击
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastBackClickTime < 500) {
+                            return@IconButton
+                        }
+                        lastBackClickTime = currentTime
+                        
                         if (selectedCategory != null) {
                             selectedCategory = null
                         } else {
@@ -58,9 +82,9 @@ fun SimplifiedBuildingMenuScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1976D2),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = currentTheme.primary,
+                    titleContentColor = currentTheme.textPrimary,
+                    navigationIconContentColor = currentTheme.textPrimary
                 ),
                 actions = {
                     // 显示当前金币
@@ -84,33 +108,98 @@ fun SimplifiedBuildingMenuScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFE3F2FD),
-                            Color(0xFFBBDEFB)
+        ) {
+            // Tab选择器
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = currentTheme.primary,
+                contentColor = currentTheme.textPrimary
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { 
+                        selectedTab = 0
+                        selectedCategory = null
+                    },
+                    text = { Text("🏠 普通建筑") }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { 
+                        selectedTab = 1
+                        selectedCategory = null
+                    },
+                    text = { Text("🏛️ 奇观") }
+                )
+            }
+            
+            // 内容区域
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFE3F2FD),
+                                Color(0xFFBBDEFB)
+                            )
                         )
                     )
-                )
-        ) {
-            if (selectedCategory == null) {
-                // 显示四大类别
-                CategorySelectionView(
-                    onCategorySelected = { category ->
-                        selectedCategory = category
+            ) {
+                when (selectedTab) {
+                    0 -> {
+                        // 普通建筑Tab
+                        if (selectedCategory == null) {
+                            // 显示四大类别
+                            CategorySelectionView(
+                                onCategorySelected = { category ->
+                                    selectedCategory = category
+                                }
+                            )
+                        } else {
+                            // 显示该类别下的所有建筑
+                            BuildingListView(
+                                category = selectedCategory!!,
+                                currentGold = currentGold,
+                                onBuildingSelected = { building ->
+                                    // 防抖：避免快速连续点击
+                                    val currentTime = System.currentTimeMillis()
+                                    if (currentTime - lastClickTime < 500) {
+                                        println("⚠️ 建筑选择过快，忽略")
+                                        return@BuildingListView
+                                    }
+                                    lastClickTime = currentTime
+                                    
+                                    println("✅ 选择建筑: ${building.getDisplayName()}")
+                                    onBuildingSelected(building)
+                                    // 不在这里调用 onNavigateBack()，让外部的回调处理返回逻辑
+                                }
+                            )
+                        }
                     }
-                )
-            } else {
-                // 显示该类别下的所有建筑
-                BuildingListView(
-                    category = selectedCategory!!,
-                    currentGold = currentGold,
-                    onBuildingSelected = onBuildingSelected
-                )
+                    
+                    1 -> {
+                        // 奇观Tab
+                        Box(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            com.citysimulator.game.ui.component.WonderBuildingScreen(
+                                currentGold = currentGold,
+                                builtWonders = builtWonders.toList(),
+                                wondersInProgress = wondersInProgress,
+                                onBack = { /* 奇观界面自己没有返回按钮，由顶部统一管理 */ },
+                                onBuildWonder = { wonder ->
+                                    onBuildWonder(wonder)
+                                },
+                                themeColors = currentTheme
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -353,7 +442,7 @@ fun BuildingCard(
                 // 收入/维护
                 InfoChip(
                     label = if (income > 0) "收入" else "维护",
-                    value = "${if (income > 0) "+" else ""}$income/月",
+                    value = "${if (income > 0) "+" else ""}$income/30秒",
                     color = if (income > 0) Color(0xFF4CAF50) else Color(0xFFF44336)
                 )
             }

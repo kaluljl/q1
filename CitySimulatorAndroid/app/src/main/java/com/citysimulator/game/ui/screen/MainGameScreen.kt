@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,14 +77,34 @@ fun MainGameScreen(
     onNavigateToEconomy: (() -> Unit)? = null,
     onNavigateToCitizenList: (() -> Unit)? = null,
     onNavigateToCitizenAIChat: ((String) -> Unit)? = null, // 新增：导航到AI对话
+    onNavigateToThemeSelector: (() -> Unit)? = null, // 新增：导航到主题选择
     viewModel: MainGameViewModel = hiltViewModel(),
     supabaseViewModel: SupabaseGameViewModel = hiltViewModel(),
     populationViewModel: PopulationViewModel = hiltViewModel(),
     citizenViewModel: com.citysimulator.game.ui.viewmodel.CitizenViewModel = hiltViewModel(),
     policyViewModel: com.citysimulator.game.ui.viewmodel.CityPolicyViewModel = hiltViewModel(),
     gameTimeViewModel: com.citysimulator.game.ui.viewmodel.GameTimeViewModel = hiltViewModel(),
-    feedbackViewModel: com.citysimulator.game.ui.viewmodel.CitizenFeedbackViewModel = hiltViewModel()
+    feedbackViewModel: com.citysimulator.game.ui.viewmodel.CitizenFeedbackViewModel = hiltViewModel(),
+    themeViewModel: com.citysimulator.game.ui.viewmodel.ThemeViewModel = hiltViewModel()
 ) {
+    // 使用全局ThemeManager而不是ViewModel
+    var currentTheme by remember { mutableStateOf(com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()) }
+    
+    // 监听主题变化
+    DisposableEffect(Unit) {
+        println("🎨 [MainGameScreen] 注册主题监听器")
+        val listener: (com.citysimulator.game.ui.theme.ThemeType) -> Unit = { newThemeType ->
+            println("🎨 [MainGameScreen] 收到主题变化通知: $newThemeType")
+            currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
+        }
+        com.citysimulator.game.ui.theme.ThemeManager.addListener(listener)
+        
+        onDispose {
+            println("🎨 [MainGameScreen] 移除主题监听器")
+            com.citysimulator.game.ui.theme.ThemeManager.removeListener(listener)
+        }
+    }
+    
     // 建筑选择状态管理 - 使用本地状态
     var selectedBuildingType by remember { mutableStateOf<com.citysimulator.game.data.model.BuildingType?>(null) }
     var pendingBuildingPosition by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -92,11 +113,11 @@ fun MainGameScreen(
     val selectedSimplifiedBuilding by placementViewModel.selectedBuildingType.collectAsStateWithLifecycle()
     val isPlacementMode by placementViewModel.isPlacementMode.collectAsStateWithLifecycle()
     
-    // 调试：监听状态变化
-    LaunchedEffect(selectedSimplifiedBuilding, isPlacementMode) {
-        println("🎮 MainGameScreen - 选中建筑: $selectedSimplifiedBuilding")
-        println("🎮 MainGameScreen - 放置模式: $isPlacementMode")
-    }
+    // 优化：移除调试日志，减少不必要的LaunchedEffect
+    // LaunchedEffect(selectedSimplifiedBuilding, isPlacementMode) {
+    //     println("🎮 MainGameScreen - 选中建筑: $selectedSimplifiedBuilding")
+    //     println("🎮 MainGameScreen - 放置模式: $isPlacementMode")
+    // }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var buildingToDelete by remember { mutableStateOf<com.citysimulator.game.data.model.Building?>(null) }
@@ -104,6 +125,9 @@ fun MainGameScreen(
     // 市民交互
     var showCitizenDialog by remember { mutableStateOf(false) }
     var selectedCitizen by remember { mutableStateOf<com.citysimulator.game.data.model.Citizen?>(null) }
+    
+    // 防抖：记录最后一次建筑放置时间
+    var lastBuildTime by remember { mutableStateOf(0L) }
     
     // 任务完成提示
     val justCompletedTask by taskViewModel.justCompletedTask.collectAsStateWithLifecycle()
@@ -130,19 +154,14 @@ fun MainGameScreen(
     // 市民系统
     val citizens by citizenViewModel.citizens.collectAsStateWithLifecycle()
     
-    // 首次加载时同步市民数量到人口数量（只在首次加载时执行一次）
+    // 优化：使用 DisposableEffect 确保只执行一次
     var hasInitializedPopulation by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        // 等待市民数据加载完成
-        kotlinx.coroutines.delay(1000)
-        if (!hasInitializedPopulation && citizens.isNotEmpty()) {
-            // 如果存储的人口比实际市民少，则同步
-            if (currentPopulation < citizens.size) {
-                populationViewModel.setPopulation(citizens.size)
-                println("🔄 首次加载，同步人口数量: ${citizens.size}")
-            }
+    DisposableEffect(Unit) {
+        if (!hasInitializedPopulation && citizens.isNotEmpty() && currentPopulation < citizens.size) {
+            populationViewModel.setPopulation(citizens.size)
             hasInitializedPopulation = true
         }
+        onDispose { }
     }
     
     // 从 ViewModel 加载建筑数据（从本地数据库持久化存储）
@@ -156,16 +175,44 @@ fun MainGameScreen(
             println("📦 从 ViewModel 加载了 ${buildings.size} 座建筑")
             
             // 为已有建筑初始化市民
+            println("🔧 准备初始化市民，当前建筑列表: ${buildings.map { "${it.getDisplayName()}(${it.position.x},${it.position.y})" }}")
             citizenViewModel.initializeCitizens(buildings)
         }
     }
     
+    // 如果没有建筑但需要测试市民，手动添加一些测试市民
+    var hasInitializedTestCitizens by remember { mutableStateOf(false) }
+    LaunchedEffect(citizens.size, buildings.size) {
+        if (!hasInitializedTestCitizens && citizens.isEmpty() && buildings.isNotEmpty()) {
+            println("⚠️ 发现有建筑但没有市民，重新初始化...")
+            citizenViewModel.initializeCitizens(buildings)
+            hasInitializedTestCitizens = true
+        }
+        if (citizens.isNotEmpty()) {
+            println("✅ 当前市民数量: ${citizens.size}")
+        }
+    }
+    
     // 金币数据（使用rememberSaveable保存）
-    var goldAmount by rememberSaveable { mutableStateOf(1000) }
+    var goldAmount by rememberSaveable { mutableStateOf(1500) }
+    
+    // 同步金币到 ViewModel（供其他界面访问）
+    LaunchedEffect(goldAmount) {
+        supabaseViewModel.updateGoldAmount(goldAmount)
+    }
+    
+    // 监听游戏时间变化
+    val currentGameDate by gameTimeViewModel.gameDate.collectAsStateWithLifecycle()
+    
+    // 同步游戏时间到 MainGameViewModel（用于季节性天气系统）
+    LaunchedEffect(currentGameDate) {
+        viewModel.updateCurrentTime(currentGameDate)
+    }
     
     // 监听游戏时间变化，每个月生成市民心声
-    val currentGameDate by gameTimeViewModel.gameDate.collectAsStateWithLifecycle()
-    LaunchedEffect(currentGameDate, buildings.size, goldAmount, currentPopulation) {
+    LaunchedEffect(currentGameDate) {
+        // 注意：只监听 currentGameDate，不监听其他状态
+        // 这样才能确保"每个游戏月生成一次"，而不是"状态变化就生成"
         val calendar = Calendar.getInstance().apply { time = currentGameDate }
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH 是 0-11
@@ -175,6 +222,7 @@ fun MainGameScreen(
         val gameTimeString = String.format("%d年%02d月%02d日 %02d:%02d", year, month, day, hour, minute)
         
         // 生成市民心声（每个月生成一次）
+        // ViewModel 内部会检查月份，避免重复生成
         feedbackViewModel.generateFeedback(
             buildings = buildings,
             resources = listOf(), // 使用空列表，因为resources还未定义
@@ -184,6 +232,28 @@ fun MainGameScreen(
             gameMonth = month,
             gameTime = gameTimeString
         )
+        
+        // 更新奇观建造进度（每个月）
+        supabaseViewModel.updateWonderProgress { wonderTypeName ->
+            // 奇观建造完成回调
+            println("🏛️ 奇观建造完成事件触发: $wonderTypeName")
+            
+            // 获取奇观对象
+            val wonder = com.citysimulator.game.ai.WonderBuildingSystem.getAllWonders()
+                .find { it.type.name == wonderTypeName }
+            
+            wonder?.let {
+                // 生成奇观完成叙事事件
+                val event = com.citysimulator.game.ai.WonderBuildingSystem
+                    .generateWonderCompletionEvent(wonder)
+                println("📜 奇观完成事件: ${event.eventTitle}")
+                println("📜 ${event.eventDescription}")
+                
+                // TODO: 应用奇观效果到所有市民
+                // 这需要访问市民数据，可以在CitizenViewModel中实现
+                println("✅ 奇观 ${wonder.name} 建造完成！")
+            }
+        }
     }
     
     // 获取已实施的政策
@@ -259,8 +329,9 @@ fun MainGameScreen(
         }
     }
     
-    // 更新人口
-    LaunchedEffect(buildings, resources, goldAmount) {
+    // 优化：降低更新频率，使用 debounce
+    LaunchedEffect(buildings.size, goldAmount) {
+        delay(2000) // 防抖2秒
         populationViewModel.updatePopulation(
             buildings = buildings,
             resources = resources,
@@ -278,12 +349,12 @@ fun MainGameScreen(
         }
     }
     
-        // 资源生产系统
-        LaunchedEffect(resources) {
+        // 优化：大幅降低资源更新频率到 20 秒
+        LaunchedEffect(Unit) {
             while (true) {
-                kotlinx.coroutines.delay(3000) // 每3秒更新一次资源
+                delay(20000) // 从3秒改为20秒
                 resources = resources.map { resource ->
-                    val growth = resource.calculateGrowth(3) // 3秒的增长
+                    val growth = resource.calculateGrowth(20) // 20秒的增长
                     val newAmount = (resource.amount + growth).coerceAtMost(resource.maxCapacity)
                     resource.copy(amount = newAmount)
                 }
@@ -291,11 +362,11 @@ fun MainGameScreen(
         }
 
         // 金币收入系统（应用政策效果）
-        // 游戏时间：每10分钟（600秒）= 游戏内1个月
+        // 游戏时间：每30秒 = 游戏内1个月（平衡游戏节奏）
         LaunchedEffect(buildings, implementedPolicies, currentPopulation) {
             var monthCount = 0
             while (true) {
-                kotlinx.coroutines.delay(600000) // 每10分钟（600秒）结算一次，作为游戏内的"一个月"
+                kotlinx.coroutines.delay(30000) // 每30秒结算一次，作为游戏内的"一个月"
                 monthCount++
                 
                 // 计算月度收入
@@ -323,10 +394,10 @@ fun MainGameScreen(
             }
         }
         
-        // 任务进度更新系统
-        LaunchedEffect(buildings, currentPopulation, goldAmount) {
+        // 优化：大幅降低任务更新频率到15秒
+        LaunchedEffect(buildings.size, currentPopulation, goldAmount) {
             while (true) {
-                kotlinx.coroutines.delay(2000) // 每2秒更新一次任务进度
+                delay(15000) // 从5秒改为15秒
                 
                 // 统计各类建筑数量（优先使用customName反向识别）
                 val buildingCount = mutableMapOf<com.citysimulator.game.data.model.SimplifiedBuildingType, Int>()
@@ -380,65 +451,19 @@ fun MainGameScreen(
     val gameDate by gameTimeViewModel.gameDate.collectAsStateWithLifecycle()
     val weatherType = remember { WeatherType.SUNNY }
     
-    // 动态背景渐变
-    val backgroundBrush = remember(weatherType, gameDate) {
-        val cal = Calendar.getInstance().apply { time = gameDate }
-        val hour = cal.get(Calendar.HOUR_OF_DAY)
-        val isDay = hour in 6..18
-        
-        when (weatherType) {
-            WeatherType.SUNNY -> if (isDay) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SunnyColor.copy(alpha = 0.3f),
-                        CityBlue.copy(alpha = 0.2f)
-                    )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        CityBlueDark.copy(alpha = 0.4f),
-                        CityBlack.copy(alpha = 0.3f)
-                    )
-                )
-            }
-            WeatherType.CLOUDY -> Brush.verticalGradient(
-                colors = listOf(
-                    CloudyColor.copy(alpha = 0.3f),
-                    CityGray.copy(alpha = 0.2f)
-                )
-            )
-            WeatherType.RAINY -> Brush.verticalGradient(
-                colors = listOf(
-                    RainyColor.copy(alpha = 0.5f),
-                    CityGray.copy(alpha = 0.3f)
-                )
-            )
-            WeatherType.STORMY -> Brush.verticalGradient(
-                colors = listOf(
-                    StormyColor.copy(alpha = 0.4f),
-                    CityGrayDark.copy(alpha = 0.3f)
-                )
-            )
-            WeatherType.SNOWY -> Brush.verticalGradient(
-                colors = listOf(
-                    SnowyColor.copy(alpha = 0.4f),
-                    CityBlue.copy(alpha = 0.2f)
-                )
-            )
-            WeatherType.FOGGY -> Brush.verticalGradient(
-                colors = listOf(
-                    FoggyColor.copy(alpha = 0.4f),
-                    CityGray.copy(alpha = 0.3f)
-                )
-            )
-        }
+    // 使用 DisposableEffect 确保主题变化时强制重组
+    DisposableEffect(currentTheme.themeType) {
+        println("🎨 [MainGameScreen] DisposableEffect 触发，主题: ${currentTheme.themeName}")
+        onDispose { }
     }
     
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
+            .background(
+                // 直接在这里计算，每次重组都会重新计算
+                com.citysimulator.game.ui.theme.getThemeBackgroundBrush(currentTheme)
+            )
     ) {
         // 顶部状态栏
         TopStatusBar(
@@ -451,6 +476,7 @@ fun MainGameScreen(
             populationCapacity = populationGrowthResult?.populationCapacity ?: 0,
             growthRate = populationGrowthResult?.growthRate ?: 0.0,
             prosperityScore = cityProsperity?.overallProsperity?.toInt() ?: 0,
+            themeColors = currentTheme, // 传入主题颜色
             modifier = Modifier.fillMaxWidth()
         )
         
@@ -525,18 +551,27 @@ fun MainGameScreen(
                         showDeleteDialog = true
                     },
                     onEmptyGridClick = { x, y ->
+                        // 防抖：避免快速连续点击导致崩溃
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastBuildTime < 500) { // 500ms 防抖
+                            println("⚠️ 点击过快，忽略本次点击")
+                            return@CityGrid
+                        }
+                        
                         // 点击空网格放置建筑
                         println("点击空网格: ($x, $y), 选择的建筑类型: $selectedBuildingType, 简化建筑: $selectedSimplifiedBuilding")
                         
                         // 优先处理简化建筑系统
-                        if (selectedSimplifiedBuilding != null) {
-                            val simplifiedType = selectedSimplifiedBuilding!!
+                        val simplifiedType = selectedSimplifiedBuilding
+                        if (simplifiedType != null) {
                             val buildCost = simplifiedType.getBuildCost()
                             
                             println("🏗️ 建造简化建筑: ${simplifiedType.getDisplayName()} 在 ($x, $y), 成本: $buildCost")
                             
                             // 检查金币是否足够
                             if (goldAmount >= buildCost) {
+                                // 更新最后建造时间
+                                lastBuildTime = currentTime
                                 goldAmount -= buildCost
                                 // 创建建筑实例 (转换为旧Building系统以兼容现有代码)
                                 val mappedBuildingType = mapSimplifiedToOldBuildingType(simplifiedType)
@@ -598,7 +633,7 @@ fun MainGameScreen(
                     modifier = Modifier.fillMaxSize()
                 )
                 
-                // 市民显示层（可交互）
+                // 市民显示层（可交互）- 改进的视觉效果 + 平滑移动动画
                 if (citizens.isNotEmpty()) {
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val gridColumns = 20
@@ -606,29 +641,48 @@ fun MainGameScreen(
                         val cellWidth = maxWidth / gridColumns
                         val cellHeight = maxHeight / gridRows
                         
-                        // 绘制可点击的市民
+                        // 绘制可点击的市民（使用改进的SimpleCitizenMarker组件 + 动画）
                         citizens.forEach { citizen ->
-                            val xOffset = cellWidth * citizen.currentX + cellWidth / 2 - 6.dp
-                            val yOffset = cellHeight * citizen.currentY + cellHeight / 2 - 6.dp
-                            
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = xOffset, y = yOffset)
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        when {
-                                            citizen.happiness > 0.7f -> Color(0xFF4CAF50) // 绿色
-                                            citizen.happiness > 0.4f -> Color(0xFFFFC107) // 黄色
-                                            else -> Color(0xFFF44336) // 红色
+                            // 使用key确保Compose正确追踪每个市民
+                            key(citizen.id) {
+                                // 计算目标位置
+                                val targetX = cellWidth * citizen.currentX + cellWidth / 2 - 8.dp
+                                val targetY = cellHeight * citizen.currentY + cellHeight / 2 - 8.dp
+                                
+                                // 平滑移动动画
+                                val animatedX by androidx.compose.animation.core.animateDpAsState(
+                                    targetValue = targetX,
+                                    animationSpec = androidx.compose.animation.core.spring(
+                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                                    ),
+                                    label = "citizen_x_${citizen.id}"
+                                )
+                                val animatedY by androidx.compose.animation.core.animateDpAsState(
+                                    targetValue = targetY,
+                                    animationSpec = androidx.compose.animation.core.spring(
+                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                                    ),
+                                    label = "citizen_y_${citizen.id}"
+                                )
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = animatedX, y = animatedY)
+                                        .clickable {
+                                            // 点击市民显示详情
+                                            selectedCitizen = citizen
+                                            showCitizenDialog = true
                                         }
+                                ) {
+                                    // 使用带情绪的市民标记
+                                    EmotionalCitizenMarker(
+                                        citizen = citizen,
+                                        showEmotionBubble = true  // 显示情绪气泡
                                     )
-                                    .clickable {
-                                        // 点击市民显示详情
-                                        selectedCitizen = citizen
-                                        showCitizenDialog = true
-                                    }
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -662,6 +716,7 @@ fun MainGameScreen(
             onPolicyClick = onNavigateToCityPolicy,
             onEconomyClick = onNavigateToEconomy,
             onCitizenListClick = onNavigateToCitizenList,
+            onThemeClick = onNavigateToThemeSelector,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -1167,6 +1222,11 @@ private fun CityGrid(
     val gridColumns = 20 // 20列
     val gridRows = 30 // 30行（增加到30行以填满屏幕）
     
+    // 优化：预先创建建筑位置索引，避免每次查找
+    val buildingMap = remember(buildings) {
+        buildings.associateBy { "${it.position.x},${it.position.y}" }
+    }
+    
     LazyVerticalGrid(
         columns = GridCells.Fixed(gridColumns),
         modifier = modifier
@@ -1177,13 +1237,12 @@ private fun CityGrid(
         contentPadding = PaddingValues(0.dp),
         userScrollEnabled = false // 禁用滚动，让市民和地图同步
     ) {
-        items(gridColumns * gridRows) { index ->
+        items(gridColumns * gridRows, key = { it }) { index ->
             val x = index % gridColumns
             val y = index / gridColumns
             
-            val building = buildings.find { 
-                it.position.x == x && it.position.y == y 
-            }
+            // 优化：使用 Map 快速查找，而不是 find
+            val building = buildingMap["$x,$y"]
             
             // 检查是否是街道位置
             val isStreet = isStreetPosition(x, y)

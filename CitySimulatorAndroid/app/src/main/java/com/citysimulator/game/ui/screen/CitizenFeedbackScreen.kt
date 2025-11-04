@@ -37,10 +37,16 @@ fun CitizenFeedbackScreen(
     onDeleteFeedback: (String) -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
+    // 获取当前主题
+    val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
+    
+    // 防抖：记录最后一次返回按钮点击时间
+    var lastBackClickTime by remember { mutableStateOf(0L) }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(com.citysimulator.game.ui.theme.getThemeBackgroundBrush(currentTheme))
     ) {
         // 顶部标题栏
         TopAppBar(
@@ -52,7 +58,15 @@ fun CitizenFeedbackScreen(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
+                IconButton(onClick = {
+                    // 防抖：避免快速连续点击
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastBackClickTime < 500) {
+                        return@IconButton
+                    }
+                    lastBackClickTime = currentTime
+                    onNavigateBack()
+                }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                 }
             },
@@ -62,8 +76,10 @@ fun CitizenFeedbackScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = currentTheme.primary,
+                titleContentColor = currentTheme.textPrimary,
+                navigationIconContentColor = currentTheme.textPrimary,
+                actionIconContentColor = currentTheme.textPrimary
             )
         )
         

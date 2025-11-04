@@ -337,6 +337,82 @@ object DevelopmentTaskTemplates {
                     TaskReward(RewardType.GOLD, 300),
                     TaskReward(RewardType.REPUTATION, 15, "市民满意度提升")
                 )
+            ),
+            Task(
+                id = "dev_build_factory",
+                title = "工业发展",
+                description = "建造工厂，提升城市生产力！",
+                type = TaskType.DEVELOPMENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.FOOD_FACTORY,
+                priority = 55,
+                trigger = TaskTrigger.POPULATION_MILESTONE,
+                triggerValue = "75",
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 600),
+                    TaskReward(RewardType.BOOST, description = "收入+10%持续12小时")
+                )
+            ),
+            Task(
+                id = "dev_build_store",
+                title = "商业设施",
+                description = "建造商店，满足市民购物需求！",
+                type = TaskType.DEVELOPMENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.CONVENIENCE_STORE,
+                priority = 40,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 250),
+                    TaskReward(RewardType.REPUTATION, 10)
+                )
+            ),
+            Task(
+                id = "dev_build_shopping_mall",
+                title = "商业中心",
+                description = "建造购物中心，让城市更加繁华！",
+                type = TaskType.DEVELOPMENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.SHOPPING_MALL,
+                priority = 65,
+                trigger = TaskTrigger.POPULATION_MILESTONE,
+                triggerValue = "120",
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 1000),
+                    TaskReward(RewardType.REPUTATION, 25)
+                )
+            ),
+            Task(
+                id = "dev_build_hospital",
+                title = "医疗保障",
+                description = "建造大医院，保障市民健康！",
+                type = TaskType.DEVELOPMENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.HOSPITAL,
+                priority = 70,
+                trigger = TaskTrigger.POPULATION_MILESTONE,
+                triggerValue = "150",
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 1200),
+                    TaskReward(RewardType.REPUTATION, 30, "健康城市称号")
+                )
+            ),
+            Task(
+                id = "dev_build_solar_plant",
+                title = "绿色能源",
+                description = "建造太阳能电站，走可持续发展道路！",
+                type = TaskType.DEVELOPMENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.SOLAR_PLANT,
+                priority = 60,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 800),
+                    TaskReward(RewardType.REPUTATION, 20, "环保城市")
+                )
             )
         )
     }
@@ -393,6 +469,117 @@ object RandomEventTaskTemplates {
                 triggerValue = "traffic_congestion_60",
                 rewards = listOf(
                     TaskReward(RewardType.REPUTATION, 15, "市民感激")
+                )
+            ),
+            Task(
+                id = "event_festival",
+                title = "🎉 城市节日庆典",
+                description = "一年一度的城市节日即将到来！建造一个广场庆祝吧！",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.PLAZA,
+                isOptional = true,
+                priority = 50,
+                timeLimit = 180000, // 3分钟
+                trigger = TaskTrigger.TIME_BASED,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 800),
+                    TaskReward(RewardType.REPUTATION, 40, "节日组织者")
+                )
+            ),
+            Task(
+                id = "event_power_shortage",
+                title = "⚡ 电力短缺警告",
+                description = "用电高峰期到来，城市缺电！快速建造发电设施。",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.COAL_PLANT,
+                priority = 60,
+                timeLimit = 120000, // 2分钟
+                trigger = TaskTrigger.RANDOM,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 500),
+                    TaskReward(RewardType.REPUTATION, 20)
+                )
+            ),
+            Task(
+                id = "event_homeless_crisis",
+                title = "🏠 住房危机",
+                description = "大量新移民涌入！紧急建造住宅满足需求。",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 3,
+                targetBuildingType = SimplifiedBuildingType.APARTMENT,
+                priority = 55,
+                trigger = TaskTrigger.RANDOM,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 600),
+                    TaskReward(RewardType.POPULATION, 15, "新市民感激入住")
+                )
+            ),
+            Task(
+                id = "event_entrepreneur",
+                title = "💼 创业者入驻",
+                description = "科技创业者想在你的城市开公司！建造科技园区吸引他们。",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.TECH_PARK,
+                isOptional = true,
+                priority = 45,
+                trigger = TaskTrigger.RANDOM,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 1000),
+                    TaskReward(RewardType.BOOST, description = "税收+15%持续24小时")
+                )
+            ),
+            Task(
+                id = "event_pollution_alert",
+                title = "🌿 环保行动",
+                description = "环保组织呼吁减少污染！建造绿化设施改善环境。",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 2,
+                targetBuildingType = SimplifiedBuildingType.SMALL_PARK,
+                isOptional = true,
+                priority = 40,
+                trigger = TaskTrigger.RANDOM,
+                rewards = listOf(
+                    TaskReward(RewardType.REPUTATION, 30, "绿色城市勋章")
+                )
+            ),
+            Task(
+                id = "event_crime_wave",
+                title = "🚨 犯罪率上升",
+                description = "市民反映治安问题！建造警察局维护秩序。",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.POLICE_STATION,
+                priority = 65,
+                timeLimit = 150000, // 2.5分钟
+                trigger = TaskTrigger.RANDOM,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 700),
+                    TaskReward(RewardType.REPUTATION, 35, "安全城市")
+                )
+            ),
+            Task(
+                id = "event_tech_boom",
+                title = "💻 科技浪潮",
+                description = "抓住科技革命的机会！建造食品加工厂提升生产力。",
+                type = TaskType.RANDOM_EVENT,
+                targetType = "BUILD",
+                targetValue = 1,
+                targetBuildingType = SimplifiedBuildingType.FOOD_FACTORY,
+                isOptional = true,
+                priority = 50,
+                trigger = TaskTrigger.RANDOM,
+                rewards = listOf(
+                    TaskReward(RewardType.GOLD, 1500),
+                    TaskReward(RewardType.BOOST, description = "生产力+25%持续48小时")
                 )
             )
         )

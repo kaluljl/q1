@@ -29,8 +29,16 @@ class SupabaseGameViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
-    private val _goldAmount = MutableStateFlow(1000)
+    private val _goldAmount = MutableStateFlow(1500)
     val goldAmount: StateFlow<Int> = _goldAmount.asStateFlow()
+    
+    // 已建造的奇观列表 (存储奇观类型名称)
+    private val _builtWonders = MutableStateFlow<Set<String>>(emptySet())
+    val builtWonders: StateFlow<Set<String>> = _builtWonders.asStateFlow()
+    
+    // 正在建造的奇观 (奇观类型名称 -> 剩余月数)
+    private val _wondersInProgress = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val wondersInProgress: StateFlow<Map<String, Int>> = _wondersInProgress.asStateFlow()
     
     init {
         loadBuildings()
@@ -41,6 +49,100 @@ class SupabaseGameViewModel @Inject constructor(
      */
     fun updateGoldAmount(amount: Int) {
         _goldAmount.value = amount
+    }
+    
+    /**
+     * 开始建造奇观
+     */
+    fun startBuildingWonder(wonder: com.citysimulator.game.ai.WonderBuilding): Boolean {
+        // 检查是否已建造
+        if (_builtWonders.value.contains(wonder.type.name)) {
+            println("⚠️ 奇观 ${wonder.name} 已经建造过了")
+            return false
+        }
+        
+        // 检查是否正在建造
+        if (_wondersInProgress.value.containsKey(wonder.type.name)) {
+            println("⚠️ 奇观 ${wonder.name} 正在建造中")
+            return false
+        }
+        
+        // 检查金币是否足够
+        if (_goldAmount.value < wonder.buildCost) {
+            println("⚠️ 金币不足，需要 ${wonder.buildCost}，当前 ${_goldAmount.value}")
+            return false
+        }
+        
+        // 扣除金币
+        _goldAmount.value -= wonder.buildCost
+        
+        // 添加到建造队列
+        val currentProgress = _wondersInProgress.value.toMutableMap()
+        currentProgress[wonder.type.name] = wonder.buildTime
+        _wondersInProgress.value = currentProgress
+        
+        println("✅ 开始建造奇观: ${wonder.name}，需要 ${wonder.buildTime} 个月")
+        return true
+    }
+    
+    /**
+     * 更新奇观建造进度 (每个游戏月调用一次)
+     * @param onWonderCompleted 奇观建造完成时的回调，传入奇观类型名称
+     */
+    fun updateWonderProgress(onWonderCompleted: ((String) -> Unit)? = null) {
+        val currentProgress = _wondersInProgress.value.toMutableMap()
+        val builtWonders = _builtWonders.value.toMutableSet()
+        val completedWonders = mutableListOf<String>()
+        
+        currentProgress.forEach { (wonderTypeName, remainingMonths) ->
+            val newRemaining = remainingMonths - 1
+            if (newRemaining <= 0) {
+                // 建造完成
+                completedWonders.add(wonderTypeName)
+                builtWonders.add(wonderTypeName)
+                println("🎉 奇观建造完成: $wonderTypeName")
+                
+                // 触发完成回调
+                onWonderCompleted?.invoke(wonderTypeName)
+            } else {
+                currentProgress[wonderTypeName] = newRemaining
+            }
+        }
+        
+        // 从进度中移除已完成的
+        completedWonders.forEach { currentProgress.remove(it) }
+        
+        _wondersInProgress.value = currentProgress
+        _builtWonders.value = builtWonders
+    }
+    
+    /**
+     * 获取所有已建造奇观的效果列表
+     */
+    fun getBuiltWondersEffects(): List<com.citysimulator.game.ai.WonderBuilding> {
+        return com.citysimulator.game.ai.WonderBuildingSystem.getAllWonders()
+            .filter { _builtWonders.value.contains(it.type.name) }
+    }
+    
+    /**
+     * 检查奇观是否已建造
+     */
+    fun isWonderBuilt(wonderTypeName: String): Boolean {
+        return _builtWonders.value.contains(wonderTypeName)
+    }
+    
+    /**
+     * 检查奇观是否正在建造
+     */
+    fun isWonderInProgress(wonderTypeName: String): Boolean {
+        return _wondersInProgress.value.containsKey(wonderTypeName)
+    }
+    
+    /**
+     * 获取奇观剩余建造时间
+     */
+    fun getWonderRemainingTime(wonderTypeName: String): Int? {
+        return _wondersInProgress.value[wonderTypeName]
     }
     
     /**

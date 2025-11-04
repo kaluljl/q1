@@ -75,6 +75,7 @@ class TaskViewModel @Inject constructor(
             
             if (tasksJson.isNullOrEmpty()) {
                 // 如果没有保存的任务，初始化新手任务
+                println("📋 TaskViewModel: 初始化新手任务")
                 initializeTutorialTasks()
             } else {
                 // 从JSON反序列化任务列表
@@ -82,11 +83,13 @@ class TaskViewModel @Inject constructor(
                     val type = object : TypeToken<List<Task>>() {}.type
                     val savedTasks: List<Task> = gson.fromJson(tasksJson, type)
                     _tasks.value = savedTasks
+                    println("📋 TaskViewModel: 加载了 ${savedTasks.size} 个任务")
                     updateCurrentMainTask()
                     updateRecentTasks()
                     _completedTaskCount.value = prefs.getInt(KEY_COMPLETED_COUNT, 0)
                 } catch (e: Exception) {
                     // JSON解析失败，重新初始化
+                    println("📋 TaskViewModel: JSON解析失败，重新初始化")
                     initializeTutorialTasks()
                 }
             }
@@ -172,10 +175,14 @@ class TaskViewModel @Inject constructor(
                     // 任务不存在，添加新任务
                     currentTasks.add(newTask)
                     _showNewTaskNotification.value = true
-                    println("✨ 新任务生成: ${newTask.title}")
+                    println("✨ 新任务生成: ${newTask.title} (ID: ${newTask.id})")
+                } else {
+                    println("📋 任务已存在，跳过: ${newTask.title} (状态: ${existingTask.status})")
                 }
                 // 如果任务已存在，不做任何操作，保持原有状态（已接受/进行中/已完成）
             }
+            
+            println("📋 当前任务总数: ${currentTasks.size}")
             
             _tasks.value = currentTasks
             

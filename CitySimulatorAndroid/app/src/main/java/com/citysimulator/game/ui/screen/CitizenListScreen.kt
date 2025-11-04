@@ -33,6 +33,9 @@ fun CitizenListScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 获取当前主题
+    val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
+    
     var searchQuery by remember { mutableStateOf("") }
     var filterActivity by remember { mutableStateOf<CitizenActivity?>(null) }
     
@@ -46,6 +49,7 @@ fun CitizenListScreen(
     }
     
     Scaffold(
+        containerColor = currentTheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("市民列表 (${citizens.size}人)") },
@@ -60,7 +64,10 @@ fun CitizenListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CityBlue
+                    containerColor = currentTheme.primary,
+                    titleContentColor = currentTheme.textPrimary,
+                    navigationIconContentColor = currentTheme.textPrimary,
+                    actionIconContentColor = currentTheme.textPrimary
                 )
             )
         }

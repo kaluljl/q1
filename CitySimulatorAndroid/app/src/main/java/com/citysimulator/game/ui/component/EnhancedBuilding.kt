@@ -55,13 +55,13 @@ fun EnhancedBuildingComponent(
         label = "click_scale"
     )
     
-    // 悬浮动画
+    // 悬浮动画（减小幅度，更自然）
     val infiniteTransition = rememberInfiniteTransition(label = "hover")
     val hoverOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 4f,
+        targetValue = 1.5f, // 从4f减小到1.5f，更subtle
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutCubic),
+            animation = tween(3000, easing = EaseInOutCubic), // 从2000ms增加到3000ms，更慢
             repeatMode = RepeatMode.Reverse
         ),
         label = "hover_offset"
@@ -77,13 +77,18 @@ fun EnhancedBuildingComponent(
                 isPressed = false
             }
     ) {
-        // 3D阴影效果
+        // 增强的3D阴影效果
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .offset(y = 4.dp, x = 4.dp)
+                .offset(y = 3.dp, x = 3.dp)
+                .shadow(
+                    elevation = 6.dp,
+                    shape = RoundedCornerShape(8.dp),
+                    spotColor = Color.Black.copy(alpha = 0.4f)
+                )
                 .background(
-                    color = Color.Black.copy(alpha = 0.2f),
+                    color = Color.Black.copy(alpha = 0.25f),
                     shape = RoundedCornerShape(8.dp)
                 )
         )
@@ -121,24 +126,34 @@ fun EnhancedBuildingComponent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // 建筑图标/emoji
+                    // 建筑图标/emoji（更大更清晰）
                     Text(
                         text = getBuildingEmoji(building.type),
-                        fontSize = 32.sp,
-                        modifier = Modifier.scale(buildProgress)
+                        fontSize = 28.sp, // 从32sp改为28sp，更合适的大小
+                        modifier = Modifier
+                            .scale(buildProgress)
+                            .shadow(
+                                elevation = 2.dp,
+                                shape = RoundedCornerShape(4.dp)
+                            )
                     )
                     
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     
-                    // 建筑名称
+                    // 建筑名称（更清晰的文字效果）
                     Text(
                         text = building.getDisplayName(),
-                        fontSize = 9.sp,
+                        fontSize = 8.sp,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
-                        modifier = Modifier.padding(horizontal = 2.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 2.dp)
+                            .shadow(
+                                elevation = 1.dp,
+                                shape = RoundedCornerShape(2.dp)
+                            )
                     )
                 }
                 
@@ -237,42 +252,84 @@ fun EnhancedEmptyGridCell(
 }
 
 /**
- * 获取建筑颜色
+ * 获取建筑颜色 - 更丰富的配色方案
  */
 private fun getBuildingColor(type: BuildingType): Color {
-    // 根据建筑类型分配颜色
-    return when {
-        type == BuildingType.HOUSE || type == BuildingType.APARTMENT || type == BuildingType.VILLA || type == BuildingType.SKYSCRAPER -> 
-            Color(0xFFE57373) // 住宅：红色系
-        type == BuildingType.SHOP || type == BuildingType.SUPERMARKET || type == BuildingType.MALL || type == BuildingType.RESTAURANT || type == BuildingType.HOTEL -> 
-            Color(0xFFFFA726) // 商业：橙色系
-        type == BuildingType.FACTORY || type == BuildingType.STEEL_MILL || type == BuildingType.POWER_PLANT || type == BuildingType.FARM -> 
-            Color(0xFF78909C) // 工业：灰色系
-        type == BuildingType.SCHOOL || type == BuildingType.HOSPITAL || type == BuildingType.POLICE_STATION || type == BuildingType.FIRE_STATION || type == BuildingType.PARK -> 
-            Color(0xFF66BB6A) // 公共：绿色系
-        type == BuildingType.ROAD || type == BuildingType.BRIDGE || type == BuildingType.BUS_STOP || type == BuildingType.SUBWAY_STATION -> 
-            Color(0xFF757575) // 交通：深灰色系
-        else -> Color(0xFF9E9E9E) // 默认：灰色
+    return when (type) {
+        // 住宅类：温暖的色调
+        BuildingType.HOUSE -> Color(0xFFFF8A80) // 粉红色 - 小房子
+        BuildingType.APARTMENT -> Color(0xFFFF5252) // 红色 - 公寓
+        BuildingType.VILLA -> Color(0xFFFFAB91) // 橙粉色 - 别墅
+        BuildingType.SKYSCRAPER -> Color(0xFFE57373) // 深红色 - 摩天大楼
+        
+        // 商业类：活力的橙黄色调
+        BuildingType.SHOP -> Color(0xFFFFD54F) // 黄色 - 商店
+        BuildingType.SUPERMARKET -> Color(0xFFFFCA28) // 金黄色 - 超市
+        BuildingType.MALL -> Color(0xFFFFA726) // 橙色 - 商场
+        BuildingType.RESTAURANT -> Color(0xFFFF9800) // 深橙色 - 餐厅
+        BuildingType.HOTEL -> Color(0xFFFFB74D) // 浅橙色 - 酒店
+        
+        // 工业类：冷静的灰蓝色调
+        BuildingType.FACTORY -> Color(0xFF90A4AE) // 蓝灰色 - 工厂
+        BuildingType.STEEL_MILL -> Color(0xFF78909C) // 深蓝灰 - 钢铁厂
+        BuildingType.POWER_PLANT -> Color(0xFF607D8B) // 灰蓝色 - 发电厂
+        BuildingType.FARM -> Color(0xFF8BC34A) // 浅绿色 - 农场
+        
+        // 公共服务类：清新的绿色调
+        BuildingType.SCHOOL -> Color(0xFF81C784) // 绿色 - 学校
+        BuildingType.HOSPITAL -> Color(0xFF66BB6A) // 深绿色 - 医院
+        BuildingType.POLICE_STATION -> Color(0xFF42A5F5) // 蓝色 - 警察局
+        BuildingType.FIRE_STATION -> Color(0xFFEF5350) // 红色 - 消防局
+        BuildingType.PARK -> Color(0xFF4CAF50) // 森林绿 - 公园
+        
+        // 交通类：中性的灰色调
+        BuildingType.ROAD -> Color(0xFF9E9E9E) // 灰色 - 道路
+        BuildingType.BRIDGE -> Color(0xFF757575) // 深灰色 - 桥梁
+        BuildingType.BUS_STOP -> Color(0xFFBDBDBD) // 浅灰色 - 公交站
+        BuildingType.SUBWAY_STATION -> Color(0xFF616161) // 炭灰色 - 地铁站
+        
+        else -> Color(0xFFB0BEC5) // 默认：蓝灰色
     }
 }
 
 /**
- * 获取建筑Emoji图标
+ * 获取建筑Emoji图标 - 更具体的图标
  */
 private fun getBuildingEmoji(type: BuildingType): String {
-    // 根据建筑类型分配图标
-    return when {
-        type == BuildingType.HOUSE || type == BuildingType.APARTMENT || type == BuildingType.VILLA || type == BuildingType.SKYSCRAPER -> 
-            "🏠"
-        type == BuildingType.SHOP || type == BuildingType.SUPERMARKET || type == BuildingType.MALL || type == BuildingType.RESTAURANT || type == BuildingType.HOTEL -> 
-            "🏪"
-        type == BuildingType.FACTORY || type == BuildingType.STEEL_MILL || type == BuildingType.POWER_PLANT || type == BuildingType.FARM -> 
-            "🏭"
-        type == BuildingType.SCHOOL || type == BuildingType.HOSPITAL || type == BuildingType.POLICE_STATION || type == BuildingType.FIRE_STATION || type == BuildingType.PARK -> 
-            "🏛️"
-        type == BuildingType.ROAD || type == BuildingType.BRIDGE || type == BuildingType.BUS_STOP || type == BuildingType.SUBWAY_STATION -> 
-            "🛣️"
-        else -> "🏗️"
+    return when (type) {
+        // 住宅类
+        BuildingType.HOUSE -> "🏠" // 小房子
+        BuildingType.APARTMENT -> "🏢" // 公寓楼
+        BuildingType.VILLA -> "🏘️" // 别墅
+        BuildingType.SKYSCRAPER -> "🏙️" // 摩天大楼
+        
+        // 商业类
+        BuildingType.SHOP -> "🏪" // 便利店
+        BuildingType.SUPERMARKET -> "🛒" // 超市
+        BuildingType.MALL -> "🏬" // 购物中心
+        BuildingType.RESTAURANT -> "🍽️" // 餐厅
+        BuildingType.HOTEL -> "🏨" // 酒店
+        
+        // 工业类
+        BuildingType.FACTORY -> "🏭" // 工厂
+        BuildingType.STEEL_MILL -> "⚙️" // 钢铁厂
+        BuildingType.POWER_PLANT -> "⚡" // 发电厂
+        BuildingType.FARM -> "🌾" // 农场
+        
+        // 公共服务类
+        BuildingType.SCHOOL -> "🏫" // 学校
+        BuildingType.HOSPITAL -> "🏥" // 医院
+        BuildingType.POLICE_STATION -> "🚓" // 警察局
+        BuildingType.FIRE_STATION -> "🚒" // 消防局
+        BuildingType.PARK -> "🌳" // 公园
+        
+        // 交通类
+        BuildingType.ROAD -> "🛣️" // 道路
+        BuildingType.BRIDGE -> "🌉" // 桥梁
+        BuildingType.BUS_STOP -> "🚏" // 公交站
+        BuildingType.SUBWAY_STATION -> "🚇" // 地铁站
+        
+        else -> "🏗️" // 默认：建设中
     }
 }
 

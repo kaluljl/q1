@@ -55,6 +55,9 @@ data class Citizen(
     // 性格特征
     val personality: CitizenPersonality = CitizenPersonality.BALANCED,
     
+    // 深度AI人格系统（8维人格特质）
+    val personalityTraits: PersonalityTraits? = null,
+    
     // 时间统计
     val lastActivityChangeTime: Date = Date(),
     val totalCommuteTime: Long = 0, // 累计通勤时间（分钟）

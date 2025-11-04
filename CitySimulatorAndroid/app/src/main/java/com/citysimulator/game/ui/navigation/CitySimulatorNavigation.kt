@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.material3.Text
@@ -41,6 +42,7 @@ import com.citysimulator.game.ui.screen.CitizenAIChatScreen
 import com.citysimulator.game.ui.screen.SimplifiedBuildingMenuScreen
 import com.citysimulator.game.ui.screen.TaskListScreen
 import com.citysimulator.game.ui.screen.SplashScreen
+import com.citysimulator.game.ui.screen.ThemeSelectorScreen
 import com.citysimulator.game.ui.viewmodel.BuildingPlacementViewModel
 import com.citysimulator.game.ui.viewmodel.TaskViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -71,6 +73,7 @@ object CitySimulatorRoutes {
     const val CITIZEN_DETAIL = "citizen_detail/{citizenId}"
     const val CITIZEN_AI_CHAT = "citizen_ai_chat/{citizenId}"
     const val ECONOMY_DASHBOARD = "economy_dashboard"
+    const val THEME_SELECTOR = "theme_selector" // 新增：主题选择
 }
 
 /**
@@ -84,6 +87,24 @@ fun CitySimulatorNavigation(
     navController: NavHostController = rememberNavController(),
     context: Context
 ) {
+    // 全局防抖：防止快速连续导航导致崩溃
+    var lastNavigationTime by remember { mutableStateOf(0L) }
+    
+    // 安全的返回函数（带防抖和异常处理）
+    val safePopBackStack: () -> Unit = {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastNavigationTime >= 500) {
+            lastNavigationTime = currentTime
+            try {
+                if (navController.previousBackStackEntry != null) {
+                    navController.popBackStack()
+                }
+            } catch (e: Exception) {
+                println("❌ 导航返回失败: ${e.message}")
+            }
+        }
+    }
+    
     NavHost(
         navController = navController,
         startDestination = CitySimulatorRoutes.SPLASH
@@ -109,10 +130,26 @@ fun CitySimulatorNavigation(
             val citizenViewModel: com.citysimulator.game.ui.viewmodel.CitizenViewModel = hiltViewModel(
                 navController.getBackStackEntry(CitySimulatorRoutes.MAIN_GAME)
             )
+            // 获取主题ViewModel - 使用全局ViewModelStore（不是backstack绑定的）
+            val themeViewModel: com.citysimulator.game.ui.viewmodel.ThemeViewModel = hiltViewModel()
+            val currentThemeType by themeViewModel.selectedThemeType.collectAsStateWithLifecycle()
             
-            MainGameScreen(
-                placementViewModel = placementViewModel,
-                taskViewModel = taskViewModel,
+            // 调试：打印当前主题类型
+            LaunchedEffect(Unit) {
+                println("🎨 [Navigation] MainGameScreen主题类型: $currentThemeType")
+            }
+            
+            // 监听主题类型变化
+            LaunchedEffect(currentThemeType) {
+                println("🔄 Navigation层检测到主题变化: $currentThemeType")
+            }
+            
+            // 使用key确保主题变化时重新渲染
+            key(currentThemeType) {
+                println("🎨 MainGameScreen正在重组，主题: $currentThemeType")
+                MainGameScreen(
+                    placementViewModel = placementViewModel,
+                    taskViewModel = taskViewModel,
                 onNavigateToBuildingMenu = {
                     navController.navigate(CitySimulatorRoutes.BUILDING_MENU)
                 },
@@ -145,8 +182,12 @@ fun CitySimulatorNavigation(
                 },
                 onNavigateToCitizenAIChat = { citizenId ->
                     navController.navigate("citizen_ai_chat/$citizenId")
-                }
+                },
+                onNavigateToThemeSelector = {
+                    navController.navigate(CitySimulatorRoutes.THEME_SELECTOR)
+                },
             )
+            }  // key(currentThemeType) 的结束
         }
         
         // 建筑菜单界面 - 使用简化版
@@ -155,18 +196,39 @@ fun CitySimulatorNavigation(
             val placementViewModel: BuildingPlacementViewModel = hiltViewModel(
                 navController.getBackStackEntry(CitySimulatorRoutes.MAIN_GAME)
             )
+            
+            // 从主界面的 SupabaseGameViewModel 获取金币数量
+            val mainGameEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(CitySimulatorRoutes.MAIN_GAME)
+            }
+            val supabaseViewModel: com.citysimulator.game.ui.viewmodel.SupabaseGameViewModel = hiltViewModel(mainGameEntry)
+            val goldAmount by supabaseViewModel.goldAmount.collectAsStateWithLifecycle()
+            val builtWonders by supabaseViewModel.builtWonders.collectAsStateWithLifecycle()
+            val wondersInProgress by supabaseViewModel.wondersInProgress.collectAsStateWithLifecycle()
+            
             SimplifiedBuildingMenuScreen(
-                currentGold = 1000, // TODO: 从ViewModel获取实际金币
+                currentGold = goldAmount,
+                builtWonders = builtWonders,
+                wondersInProgress = wondersInProgress,
                 onBuildingSelected = { buildingType ->
                     // 设置选中的建筑类型，进入放置模式
                     println("🏗️ 选中建筑: ${buildingType.getDisplayName()}")
                     placementViewModel.selectBuilding(buildingType)
                     println("🏗️ ViewModel状态已设置，返回主界面")
                     // 返回主界面进行放置
-                    navController.popBackStack()
+                    safePopBackStack()
+                },
+                onBuildWonder = { wonder ->
+                    // 开始建造奇观
+                    val success = supabaseViewModel.startBuildingWonder(wonder)
+                    if (success) {
+                        println("🏛️ 成功开始建造奇观: ${wonder.name}")
+                    } else {
+                        println("❌ 无法建造奇观: ${wonder.name}")
+                    }
                 },
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -175,7 +237,7 @@ fun CitySimulatorNavigation(
         composable(CitySimulatorRoutes.RESOURCE_PANEL) {
             ResourcePanelScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -195,7 +257,7 @@ fun CitySimulatorNavigation(
                 onTaskAccept = { taskId -> taskViewModel.acceptTask(taskId) },
                 onTaskReject = { taskId -> taskViewModel.rejectTask(taskId) },
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -214,7 +276,7 @@ fun CitySimulatorNavigation(
         composable(CitySimulatorRoutes.SUPABASE_CONFIG) {
             SupabaseConfigScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -223,7 +285,7 @@ fun CitySimulatorNavigation(
         composable(CitySimulatorRoutes.TECH_TREE) {
             TechTreeScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -237,7 +299,7 @@ fun CitySimulatorNavigation(
             
             CityPolicyScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 },
                 currentGold = goldAmount,
                 onGoldChange = { newGold ->
@@ -311,7 +373,7 @@ fun CitySimulatorNavigation(
                 feedbacks = feedbacks,
                 isLoading = isLoading,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 },
                 onResolveFeedback = { feedbackId ->
                     feedbackViewModel.resolveFeedback(feedbackId, gameTimeString)
@@ -352,7 +414,7 @@ fun CitySimulatorNavigation(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { navController.popBackStack() },
+                    onClick = { safePopBackStack() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("返回")
@@ -377,7 +439,7 @@ fun CitySimulatorNavigation(
                     navController.navigate("citizen_detail/${citizen.id}")
                 },
                 onBack = {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -392,24 +454,30 @@ fun CitySimulatorNavigation(
                 navController.getBackStackEntry(CitySimulatorRoutes.MAIN_GAME)
             }
             val citizenViewModel: com.citysimulator.game.ui.viewmodel.CitizenViewModel = hiltViewModel(mainGameEntry)
+            
             val citizens by citizenViewModel.citizens.collectAsStateWithLifecycle()
             val selectedCitizen = citizens.find { it.id == citizenId }
+            
+            // 使用默认城市幸福度（可后续从其他ViewModel获取）
+            val cityHappiness = 0.6f
             
             if (selectedCitizen != null) {
                 CitizenDetailScreen(
                     citizen = selectedCitizen,
                     thoughts = emptyList(), // 可以从ViewModel获取
                     onBack = {
-                        navController.popBackStack()
+                        safePopBackStack()
                     },
                     onStartAIChat = { citizen ->
                         navController.navigate("citizen_ai_chat/${citizen.id}")
-                    }
+                    },
+                    citizenViewModel = citizenViewModel, // 传入ViewModel以管理人格数据
+                    cityHappiness = cityHappiness // 传入城市幸福度
                 )
             } else {
                 // 市民未找到，返回上一页
                 LaunchedEffect(Unit) {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             }
         }
@@ -431,14 +499,28 @@ fun CitySimulatorNavigation(
                 CitizenAIChatScreen(
                     citizen = selectedCitizen,
                     onBack = {
-                        navController.popBackStack()
+                        safePopBackStack()
                     }
                 )
             } else {
                 LaunchedEffect(Unit) {
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             }
+        }
+        
+        // 主题选择器页面
+        composable(CitySimulatorRoutes.THEME_SELECTOR) {
+            ThemeSelectorScreen(
+                onNavigateBack = {
+                    safePopBackStack()
+                },
+                onThemeChanged = {
+                    // 主题变化后，自动返回主界面并强制刷新
+                    println("🔄 主题已变化，自动返回并刷新主界面...")
+                    safePopBackStack()
+                }
+            )
         }
     }
 }

@@ -54,6 +54,7 @@ fun TopStatusBar(
     populationCapacity: Int = 0,
     growthRate: Double = 0.0,
     prosperityScore: Int = 0,
+    themeColors: com.citysimulator.game.ui.theme.GameThemeColors? = null, // 新增：主题颜色
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -61,10 +62,17 @@ fun TopStatusBar(
             .fillMaxWidth()
             .background(
                 Brush.horizontalGradient(
-                    colors = listOf(
-                        Color(0xFF1E88E5).copy(alpha = 0.95f),
-                        Color(0xFF1976D2).copy(alpha = 0.95f)
-                    )
+                    colors = if (themeColors != null) {
+                        listOf(
+                            themeColors.primary.copy(alpha = 0.95f),
+                            themeColors.primaryVariant.copy(alpha = 0.95f)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFF1E88E5).copy(alpha = 0.95f),
+                            Color(0xFF1976D2).copy(alpha = 0.95f)
+                        )
+                    }
                 )
             )
             .statusBarsPadding()
@@ -191,7 +199,7 @@ private fun GoldWithIncomeDisplay(
                     modifier = Modifier.size(10.dp)
                 )
                 Text(
-                    text = if (monthlyIncome >= 0) "+$monthlyIncome/月" else "$monthlyIncome/月",
+                    text = if (monthlyIncome >= 0) "+$monthlyIncome/30秒" else "$monthlyIncome/30秒",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (monthlyIncome >= 0) Color(0xFF4CAF50) else Color(0xFFFF5252),
                     fontSize = 10.sp

@@ -117,48 +117,80 @@ fun BuildingPlacementEffect(
 }
 
 /**
- * 增强的雨效果
+ * 增强的雨效果 - 更明显的版本
  * 
- * 更多雨滴、更真实的效果
+ * 特性：
+ * - 更多雨滴（200个）
+ * - 更长更粗的雨滴
+ * - 更亮的颜色
+ * - 添加雨滴落地水花效果
  */
 @Composable
 fun EnhancedRainEffect(
     modifier: Modifier = Modifier
 ) {
     var raindrops by remember { 
-        mutableStateOf(List(100) { createRaindrop() }) 
+        mutableStateOf(List(200) { createRaindrop() }) // 从100增加到200
+    }
+    
+    var splashes by remember {
+        mutableStateOf<List<RainSplash>>(emptyList())
     }
     
     LaunchedEffect(Unit) {
         while (true) {
             delay(16)
-            raindrops = raindrops.map { it.update() }
+            val newSplashes = mutableListOf<RainSplash>()
+            raindrops = raindrops.map { drop ->
+                val updated = drop.update()
+                // 当雨滴即将离开屏幕时，创建水花
+                if (updated.position.y > 1800f && drop.position.y <= 1800f) {
+                    newSplashes.add(RainSplash(Offset(drop.position.x, 1800f), 0))
+                }
+                updated
+            }
+            splashes = (splashes + newSplashes).map { it.update() }.filter { !it.isDead }
         }
     }
     
     Canvas(modifier = modifier.fillMaxSize()) {
+        // 绘制雨滴（更长更明显）
         raindrops.forEach { drop ->
             drawLine(
-                color = Color(0xFF64B5F6).copy(alpha = 0.6f),
+                color = Color(0xFFB3E5FC).copy(alpha = 0.85f), // 更亮的蓝色，更高的不透明度
                 start = drop.position,
-                end = Offset(drop.position.x - 5f, drop.position.y + 20f),
-                strokeWidth = 2f
+                end = Offset(drop.position.x - 8f, drop.position.y + 35f), // 更长的雨滴（从20增加到35）
+                strokeWidth = 3f // 更粗（从2增加到3）
+            )
+        }
+        
+        // 绘制水花效果
+        splashes.forEach { splash ->
+            val alpha = 1f - (splash.age / 10f)
+            drawCircle(
+                color = Color(0xFFE1F5FE).copy(alpha = alpha * 0.6f),
+                radius = splash.age.toFloat() * 3f,
+                center = splash.position
             )
         }
     }
 }
 
 /**
- * 增强雪花效果
+ * 增强雪花效果 - 更明显的版本
  * 
- * 飘落的雪花
+ * 特性：
+ * - 更多雪花（120个）
+ * - 更大的雪花
+ * - 更明显的漂移效果
+ * - 添加雪花旋转效果
  */
 @Composable
 fun EnhancedSnowEffect(
     modifier: Modifier = Modifier
 ) {
     var snowflakes by remember { 
-        mutableStateOf(List(60) { createSnowflake() }) 
+        mutableStateOf(List(120) { createSnowflake() }) // 从60增加到120
     }
     
     LaunchedEffect(Unit) {
@@ -170,10 +202,33 @@ fun EnhancedSnowEffect(
     
     Canvas(modifier = modifier.fillMaxSize()) {
         snowflakes.forEach { flake ->
+            // 主雪花（更大更明显）
             drawCircle(
-                color = Color.White.copy(alpha = 0.8f),
-                radius = flake.size,
+                color = Color.White.copy(alpha = 0.95f), // 更高的不透明度
+                radius = flake.size * 1.5f, // 增大尺寸
                 center = flake.position
+            )
+            
+            // 雪花光晕效果
+            drawCircle(
+                color = Color(0xFFE3F2FD).copy(alpha = 0.4f),
+                radius = flake.size * 2.5f,
+                center = flake.position
+            )
+            
+            // 绘制雪花十字形状（更真实）
+            val crossSize = flake.size * 1.2f
+            drawLine(
+                color = Color.White.copy(alpha = 0.8f),
+                start = Offset(flake.position.x - crossSize, flake.position.y),
+                end = Offset(flake.position.x + crossSize, flake.position.y),
+                strokeWidth = 1f
+            )
+            drawLine(
+                color = Color.White.copy(alpha = 0.8f),
+                start = Offset(flake.position.x, flake.position.y - crossSize),
+                end = Offset(flake.position.x, flake.position.y + crossSize),
+                strokeWidth = 1f
             )
         }
     }
@@ -261,6 +316,17 @@ private data class Snowflake(
     }
 }
 
+private data class RainSplash(
+    val position: Offset,
+    val age: Int
+) {
+    val isDead: Boolean get() = age > 10
+    
+    fun update(): RainSplash {
+        return copy(age = age + 1)
+    }
+}
+
 private data class Star(
     val position: Offset,
     val size: Float,
@@ -291,7 +357,7 @@ private fun createRaindrop(): Raindrop {
             Random.nextFloat() * 1000f,
             Random.nextFloat() * 2000f - 2000f
         ),
-        speed = Random.nextFloat() * 15f + 10f
+        speed = Random.nextFloat() * 20f + 15f // 更快的速度（从15+10改为20+15）
     )
 }
 
@@ -301,9 +367,9 @@ private fun createSnowflake(): Snowflake {
             Random.nextFloat() * 1000f,
             Random.nextFloat() * 2000f - 2000f
         ),
-        speed = Random.nextFloat() * 2f + 1f,
-        size = Random.nextFloat() * 3f + 2f,
-        drift = Random.nextFloat() * 2f - 1f
+        speed = Random.nextFloat() * 2.5f + 1.5f, // 稍快一点
+        size = Random.nextFloat() * 4f + 3f, // 更大的雪花（从3+2改为4+3）
+        drift = Random.nextFloat() * 3f - 1.5f // 更明显的漂移
     )
 }
 
