@@ -127,12 +127,12 @@ enum class SimplifiedBuildingType {
             MODERN_RESIDENCE -> "高级住房，容纳30人"
             
             // 经济
-            LEMONADE_STAND -> "最简单的赚钱方式 💰+5/分钟"
+            LEMONADE_STAND -> "最简单的赚钱方式 💰+5/30秒"
             SMALL_FARM -> "生产食物 🌾"
-            CONVENIENCE_STORE -> "中级商店 💰+15/分钟"
-            FOOD_FACTORY -> "加工食物提升收入 💰+25/分钟"
-            SHOPPING_MALL -> "大型商业中心 💰+50/分钟"
-            TECH_PARK -> "高科技产业 💰+100/分钟"
+            CONVENIENCE_STORE -> "中级商店 💰+15/30秒"
+            FOOD_FACTORY -> "加工食物提升收入 💰+25/30秒"
+            SHOPPING_MALL -> "大型商业中心 💰+50/30秒"
+            TECH_PARK -> "高科技产业 💰+100/30秒"
             
             // 电力
             WINDMILL -> "提供50⚡电力"
