@@ -146,6 +146,11 @@ fun MainGameScreen(
     val prosperityEngine = remember { CityProsperityEngine() }
     var cityProsperity by remember { mutableStateOf<CityProsperity?>(null) }
     
+    // 公用事业系统
+    var utilityStatus by remember { mutableStateOf<com.citysimulator.game.ai.UtilityStatus?>(null) }
+    var utilityImpact by remember { mutableStateOf<com.citysimulator.game.ai.UtilityImpact?>(null) }
+    var showUtilityPanel by remember { mutableStateOf(false) }
+    
     // 人口系统
     val currentPopulation by populationViewModel.currentPopulation.collectAsStateWithLifecycle()
     val populationGrowthResult by populationViewModel.populationGrowthResult.collectAsStateWithLifecycle()
@@ -304,6 +309,24 @@ fun MainGameScreen(
             consumptionRate = 10.0
         )
     )) }
+    
+    // 计算公用事业状态
+    LaunchedEffect(buildings, currentPopulation) {
+        val status = com.citysimulator.game.ai.UtilityManagementSystem.calculateUtilityStatus(
+            buildings = buildings,
+            population = currentPopulation
+        )
+        val impact = com.citysimulator.game.ai.UtilityManagementSystem.calculateUtilityImpact(status)
+        
+        utilityStatus = status
+        utilityImpact = impact
+        
+        // 打印状态
+        println("⚡ 电力: ${status.electricitySupply}/${status.electricityDemand} (${(status.electricityRatio * 100).toInt()}%)")
+        println("💧 水源: ${status.waterSupply}/${status.waterDemand} (${(status.waterRatio * 100).toInt()}%)")
+        println("🗑️ 垃圾: ${status.wasteCapacity}/${status.wasteProduction} (${(status.wasteRatio * 100).toInt()}%)")
+        println("🏗️ 建筑效率: ${(impact.buildingEfficiency * 100).toInt()}%")
+    }
     
     // 计算城市繁荣度（应用政策效果）
     LaunchedEffect(buildings, goldAmount, resources, implementedPolicies) {
@@ -480,6 +503,124 @@ fun MainGameScreen(
             onSettingsClick = onNavigateToSettings, // 设置按钮点击
             modifier = Modifier.fillMaxWidth()
         )
+        
+        // 公用事业状态栏
+        if (utilityStatus != null && utilityImpact != null) {
+            androidx.compose.material3.Card(
+                modifier = androidx.compose.ui.Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .clickable { showUtilityPanel = !showUtilityPanel },
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = currentTheme.cardBackground
+                ),
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    modifier = androidx.compose.ui.Modifier.padding(12.dp)
+                ) {
+                    // 标题行
+                    androidx.compose.foundation.layout.Row(
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = "🏗️ 城市资源",
+                            fontSize = 14.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = currentTheme.textPrimary
+                        )
+                        androidx.compose.material3.Text(
+                            text = if (showUtilityPanel) "▲" else "▼",
+                            color = currentTheme.textSecondary,
+                            fontSize = 16.sp
+                        )
+                    }
+                    
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+                    
+                    // 资源状态（始终显示）
+                    androidx.compose.foundation.layout.Row(
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
+                    ) {
+                        // 电力
+                        UtilityStatusItem(
+                            icon = "⚡",
+                            label = "电力",
+                            current = utilityStatus!!.electricitySupply,
+                            demand = utilityStatus!!.electricityDemand,
+                            ratio = utilityStatus!!.electricityRatio,
+                            themeColors = currentTheme
+                        )
+                        
+                        // 水源
+                        UtilityStatusItem(
+                            icon = "💧",
+                            label = "水源",
+                            current = utilityStatus!!.waterSupply,
+                            demand = utilityStatus!!.waterDemand,
+                            ratio = utilityStatus!!.waterRatio,
+                            themeColors = currentTheme
+                        )
+                        
+                        // 垃圾
+                        UtilityStatusItem(
+                            icon = "🗑️",
+                            label = "垃圾",
+                            current = utilityStatus!!.wasteCapacity,
+                            demand = utilityStatus!!.wasteProduction,
+                            ratio = utilityStatus!!.wasteRatio,
+                            themeColors = currentTheme
+                        )
+                    }
+                    
+                    // 详细信息（展开时显示）
+                    if (showUtilityPanel) {
+                        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+                        androidx.compose.material3.Divider(color = currentTheme.divider)
+                        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+                        
+                        // 建筑效率
+                        androidx.compose.material3.Text(
+                            text = "🏗️ 建筑效率: ${(utilityImpact!!.buildingEfficiency * 100).toInt()}%",
+                            fontSize = 12.sp,
+                            color = when {
+                                utilityImpact!!.buildingEfficiency >= 1.0f -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                                utilityImpact!!.buildingEfficiency >= 0.8f -> currentTheme.textPrimary
+                                else -> androidx.compose.ui.graphics.Color(0xFFF44336)
+                            }
+                        )
+                        
+                        // 警告信息
+                        if (utilityImpact!!.warnings.isNotEmpty()) {
+                            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(4.dp))
+                            utilityImpact!!.warnings.forEach { warning ->
+                                androidx.compose.material3.Text(
+                                    text = warning,
+                                    fontSize = 11.sp,
+                                    color = androidx.compose.ui.graphics.Color(0xFFFF9800)
+                                )
+                            }
+                        }
+                        
+                        // 建议
+                        val suggestions = com.citysimulator.game.ai.UtilityManagementSystem.getSuggestions(utilityStatus!!)
+                        if (suggestions.isNotEmpty()) {
+                            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(4.dp))
+                            suggestions.forEach { suggestion ->
+                                androidx.compose.material3.Text(
+                                    text = suggestion,
+                                    fontSize = 11.sp,
+                                    color = androidx.compose.ui.graphics.Color(0xFF2196F3)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
         // 放置模式提示
         if (isPlacementMode && selectedSimplifiedBuilding != null) {
@@ -1516,4 +1657,54 @@ private fun mapOldToSimplifiedBuildingType(
     }
 }
 
+
+/**
+ * 公用事业状态显示项
+ */
+@Composable
+private fun UtilityStatusItem(
+    icon: String,
+    label: String,
+    current: Int,
+    demand: Int,
+    ratio: Float,
+    themeColors: com.citysimulator.game.ui.theme.GameThemeColors
+) {
+    androidx.compose.foundation.layout.Column(
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+    ) {
+        // 图标
+        androidx.compose.material3.Text(
+            text = icon,
+            fontSize = 20.sp
+        )
+        
+        // 标签
+        androidx.compose.material3.Text(
+            text = label,
+            fontSize = 10.sp,
+            color = themeColors.textSecondary
+        )
+        
+        // 数�?
+        androidx.compose.material3.Text(
+            text = "$current/$demand",
+            fontSize = 11.sp,
+            color = when {
+                ratio >= 1.0f -> androidx.compose.ui.graphics.Color(0xFF4CAF50) // 绿色：充�?
+                ratio >= 0.8f -> themeColors.textPrimary                        // 正常
+                ratio >= 0.5f -> androidx.compose.ui.graphics.Color(0xFFFF9800) // 橙色：不�?
+                else -> androidx.compose.ui.graphics.Color(0xFFF44336)          // 红色：严重不�?
+            },
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
+        
+        // 百分�?
+        androidx.compose.material3.Text(
+            text = "${(ratio * 100).toInt()}%",
+            fontSize = 9.sp,
+            color = themeColors.textSecondary
+        )
+    }
+}
 
