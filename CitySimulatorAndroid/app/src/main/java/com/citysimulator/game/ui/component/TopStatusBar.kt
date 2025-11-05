@@ -55,6 +55,7 @@ fun TopStatusBar(
     growthRate: Double = 0.0,
     prosperityScore: Int = 0,
     themeColors: com.citysimulator.game.ui.theme.GameThemeColors? = null, // 新增：主题颜色
+    onSettingsClick: (() -> Unit)? = null, // 新增：设置按钮点击
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -109,11 +110,31 @@ fun TopStatusBar(
                 )
             }
 
-            // 右侧时间与天气显示
-            EnhancedTimeWeatherSection(
-                currentTime = currentTime,
-                weatherType = weatherType
-            )
+            // 右侧时间、天气和设置按钮
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                EnhancedTimeWeatherSection(
+                    currentTime = currentTime,
+                    weatherType = weatherType
+                )
+                
+                // 设置按钮
+                if (onSettingsClick != null) {
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

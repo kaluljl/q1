@@ -68,7 +68,6 @@ fun MainGameScreen(
     onNavigateToResourcePanel: () -> Unit,
     onNavigateToTaskPanel: () -> Unit,
     onNavigateToAchievementPanel: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     onNavigateToSupabaseConfig: () -> Unit,
     onNavigateToTechTree: () -> Unit,
     onNavigateToCityPolicy: () -> Unit,
@@ -78,6 +77,7 @@ fun MainGameScreen(
     onNavigateToCitizenList: (() -> Unit)? = null,
     onNavigateToCitizenAIChat: ((String) -> Unit)? = null, // 新增：导航到AI对话
     onNavigateToThemeSelector: (() -> Unit)? = null, // 新增：导航到主题选择
+    onNavigateToSettings: (() -> Unit)? = null, // 新增：导航到设置
     viewModel: MainGameViewModel = hiltViewModel(),
     supabaseViewModel: SupabaseGameViewModel = hiltViewModel(),
     populationViewModel: PopulationViewModel = hiltViewModel(),
@@ -477,6 +477,7 @@ fun MainGameScreen(
             growthRate = populationGrowthResult?.growthRate ?: 0.0,
             prosperityScore = cityProsperity?.overallProsperity?.toInt() ?: 0,
             themeColors = currentTheme, // 传入主题颜色
+            onSettingsClick = onNavigateToSettings, // 设置按钮点击
             modifier = Modifier.fillMaxWidth()
         )
         

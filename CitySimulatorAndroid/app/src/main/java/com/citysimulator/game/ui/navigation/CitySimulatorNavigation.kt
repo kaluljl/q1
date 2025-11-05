@@ -43,6 +43,7 @@ import com.citysimulator.game.ui.screen.SimplifiedBuildingMenuScreen
 import com.citysimulator.game.ui.screen.TaskListScreen
 import com.citysimulator.game.ui.screen.SplashScreen
 import com.citysimulator.game.ui.screen.ThemeSelectorScreen
+import com.citysimulator.game.ui.screen.SettingsScreen
 import com.citysimulator.game.ui.viewmodel.BuildingPlacementViewModel
 import com.citysimulator.game.ui.viewmodel.TaskViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -160,7 +161,6 @@ fun CitySimulatorNavigation(
                     navController.navigate(CitySimulatorRoutes.TASK_PANEL)
                 },
                 onNavigateToAchievementPanel = { },
-                onNavigateToSettings = { },
                 onNavigateToSupabaseConfig = {
                     navController.navigate(CitySimulatorRoutes.SUPABASE_CONFIG)
                 },
@@ -186,6 +186,9 @@ fun CitySimulatorNavigation(
                 onNavigateToThemeSelector = {
                     navController.navigate(CitySimulatorRoutes.THEME_SELECTOR)
                 },
+                onNavigateToSettings = {
+                    navController.navigate(CitySimulatorRoutes.SETTINGS)
+                }
             )
             }  // key(currentThemeType) 的结束
         }
@@ -269,7 +272,18 @@ fun CitySimulatorNavigation(
         
         // 设置界面
         composable(CitySimulatorRoutes.SETTINGS) {
-            Text("设置 - 开发中")
+            SettingsScreen(
+                onNavigateBack = { 
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                },
+                onNavigateToThemeSelector = {
+                    navController.navigate(CitySimulatorRoutes.THEME_SELECTOR)
+                }
+            )
         }
         
         // Supabase配置界面
