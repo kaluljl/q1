@@ -24,11 +24,14 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToThemeSelector: () -> Unit
+    onNavigateToThemeSelector: () -> Unit,
+    context: android.content.Context = androidx.compose.ui.platform.LocalContext.current
 ) {
     val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
     
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showResetConfirmDialog by remember { mutableStateOf(false) }
+    var showClearCacheDialog by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -159,7 +162,18 @@ fun SettingsScreen(
                     icon = "🗑️",
                     title = "清除缓存",
                     subtitle = "清理临时数据",
-                    onClick = { /* TODO: 实现清除缓存 */ },
+                    onClick = { showClearCacheDialog = true },
+                    themeColors = currentTheme,
+                    isDanger = true
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = "🔄",
+                    title = "重置游戏",
+                    subtitle = "清除所有游戏数据，重新开始",
+                    onClick = { showResetConfirmDialog = true },
                     themeColors = currentTheme,
                     isDanger = true
                 )
@@ -252,6 +266,148 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+    
+    // 重置游戏确认对话框
+    if (showResetConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirmDialog = false },
+            icon = {
+                Text(text = "⚠️", fontSize = 48.sp)
+            },
+            title = {
+                Text(
+                    text = "重置游戏",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFD32F2F)
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "此操作将：",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("• 清除所有游戏进度")
+                    Text("• 删除所有建筑和市民")
+                    Text("• 重置金币和资源")
+                    Text("• 清除任务记录")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "此操作不可撤销！",
+                        color = Color(0xFFD32F2F),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        resetGameData(context)
+                        showResetConfirmDialog = false
+                        android.widget.Toast.makeText(
+                            context,
+                            "游戏已重置，请重启应用",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                        // 延迟后退出应用
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            android.os.Process.killProcess(android.os.Process.myPid())
+                        }, 2000)
+                    }
+                ) {
+                    Text("确认重置", color = Color(0xFFD32F2F))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirmDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 清除缓存确认对话框
+    if (showClearCacheDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearCacheDialog = false },
+            icon = {
+                Text(text = "🗑️", fontSize = 48.sp)
+            },
+            title = {
+                Text(
+                    text = "清除缓存",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("确定要清除临时缓存数据吗？\n这不会影响您的游戏进度。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        clearCache(context)
+                        showClearCacheDialog = false
+                        android.widget.Toast.makeText(
+                            context,
+                            "缓存已清除",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearCacheDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+}
+
+/**
+ * 重置游戏数据
+ */
+private fun resetGameData(context: android.content.Context) {
+    try {
+        // 1. 清除所有 SharedPreferences
+        val sharedPrefsDir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
+        if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
+            sharedPrefsDir.listFiles()?.forEach { file ->
+                file.delete()
+            }
+        }
+        
+        // 2. 清除数据库
+        val dbDir = context.getDatabasePath("city_simulator_database")
+        dbDir?.delete()
+        
+        // 3. 清除缓存
+        context.cacheDir.deleteRecursively()
+        
+        // 4. 清除文件存储
+        context.filesDir.deleteRecursively()
+        
+        println("🔄 游戏数据已重置")
+    } catch (e: Exception) {
+        e.printStackTrace()
+        println("❌ 重置游戏数据失败: ${e.message}")
+    }
+}
+
+/**
+ * 清除缓存
+ */
+private fun clearCache(context: android.content.Context) {
+    try {
+        context.cacheDir.deleteRecursively()
+        println("🗑️ 缓存已清除")
+    } catch (e: Exception) {
+        e.printStackTrace()
+        println("❌ 清除缓存失败: ${e.message}")
     }
 }
 
