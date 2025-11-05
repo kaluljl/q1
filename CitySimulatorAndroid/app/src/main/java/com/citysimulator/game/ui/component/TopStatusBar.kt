@@ -50,7 +50,7 @@ fun TopStatusBar(
     weatherType: WeatherType,
     goldAmount: Int = 1000,
     monthlyIncome: Int = 0,
-    currentPopulation: Int = 20,
+    currentPopulation: Int = 0,
     populationCapacity: Int = 0,
     growthRate: Double = 0.0,
     prosperityScore: Int = 0,

@@ -43,7 +43,7 @@ class PopulationViewModel @Inject constructor(
         private val POPULATION_KEY = intPreferencesKey("current_population")
     }
     
-    private val _currentPopulation = MutableStateFlow(20) // 初始人口
+    private val _currentPopulation = MutableStateFlow(0) // 初始人口
     val currentPopulation: StateFlow<Int> = _currentPopulation.asStateFlow()
     
     private val _populationGrowthResult = MutableStateFlow<PopulationGrowthResult?>(null)
@@ -75,7 +75,7 @@ class PopulationViewModel @Inject constructor(
                     _currentPopulation.value = savedPopulation
                     println("📊 加载人口数据: $savedPopulation")
                 } else {
-                    println("🆕 首次启动，初始人口: 20")
+                    println("🆕 首次启动，初始人口: 0")
                 }
             } catch (e: Exception) {
                 println("❌ 加载人口数据失败: ${e.message}")
@@ -224,7 +224,7 @@ class PopulationViewModel @Inject constructor(
      * 重置人口数据
      */
     fun resetPopulation() {
-        _currentPopulation.value = 20
+        _currentPopulation.value = 0
         _populationGrowthResult.value = null
         _populationHistory.value = emptyList()
         _lastUpdateTime.value = System.currentTimeMillis()
