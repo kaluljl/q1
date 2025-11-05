@@ -149,7 +149,8 @@ fun MainGameScreen(
     // 公用事业系统
     var utilityStatus by remember { mutableStateOf<com.citysimulator.game.ai.UtilityStatus?>(null) }
     var utilityImpact by remember { mutableStateOf<com.citysimulator.game.ai.UtilityImpact?>(null) }
-    var showUtilityPanel by remember { mutableStateOf(false) }
+    // 默认收起资源面板，节省屏幕空间
+    var showUtilityPanel by rememberSaveable { mutableStateOf(false) }
     
     // 人口系统
     val currentPopulation by populationViewModel.currentPopulation.collectAsStateWithLifecycle()
@@ -504,12 +505,12 @@ fun MainGameScreen(
             modifier = Modifier.fillMaxWidth()
         )
         
-        // 公用事业状态栏
+        // 公用事业状态栏（更紧凑的设计）
         if (utilityStatus != null && utilityImpact != null) {
             androidx.compose.material3.Card(
                 modifier = androidx.compose.ui.Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 8.dp, vertical = 2.dp) // 减少垂直间距
                     .clickable { showUtilityPanel = !showUtilityPanel },
                 colors = androidx.compose.material3.CardDefaults.cardColors(
                     containerColor = currentTheme.cardBackground
@@ -517,9 +518,9 @@ fun MainGameScreen(
                 elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 androidx.compose.foundation.layout.Column(
-                    modifier = androidx.compose.ui.Modifier.padding(12.dp)
+                    modifier = androidx.compose.ui.Modifier.padding(8.dp) // 减少内边距
                 ) {
-                    // 标题行
+                    // 标题行（更紧凑）
                     androidx.compose.foundation.layout.Row(
                         modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
                         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
@@ -527,18 +528,18 @@ fun MainGameScreen(
                     ) {
                         androidx.compose.material3.Text(
                             text = "🏗️ 城市资源",
-                            fontSize = 14.sp,
+                            fontSize = 12.sp, // 减小字体
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = currentTheme.textPrimary
                         )
                         androidx.compose.material3.Text(
                             text = if (showUtilityPanel) "▲" else "▼",
                             color = currentTheme.textSecondary,
-                            fontSize = 16.sp
+                            fontSize = 14.sp // 减小箭头大小
                         )
                     }
                     
-                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(4.dp))
                     
                     // 资源状态（始终显示）
                     androidx.compose.foundation.layout.Row(
@@ -1673,37 +1674,30 @@ private fun UtilityStatusItem(
     androidx.compose.foundation.layout.Column(
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
-        // 图标
+        // 图标（减小）
         androidx.compose.material3.Text(
             text = icon,
-            fontSize = 20.sp
+            fontSize = 16.sp
         )
         
-        // 标签
+        // 标签（减小）
         androidx.compose.material3.Text(
             text = label,
-            fontSize = 10.sp,
-            color = themeColors.textSecondary
-        )
-        
-        // 数�?
-        androidx.compose.material3.Text(
-            text = "$current/$demand",
-            fontSize = 11.sp,
-            color = when {
-                ratio >= 1.0f -> androidx.compose.ui.graphics.Color(0xFF4CAF50) // 绿色：充�?
-                ratio >= 0.8f -> themeColors.textPrimary                        // 正常
-                ratio >= 0.5f -> androidx.compose.ui.graphics.Color(0xFFFF9800) // 橙色：不�?
-                else -> androidx.compose.ui.graphics.Color(0xFFF44336)          // 红色：严重不�?
-            },
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-        )
-        
-        // 百分�?
-        androidx.compose.material3.Text(
-            text = "${(ratio * 100).toInt()}%",
             fontSize = 9.sp,
             color = themeColors.textSecondary
+        )
+        
+        // 百分比（更突出，只显示最重要的信息）
+        androidx.compose.material3.Text(
+            text = "${(ratio * 100).toInt()}%",
+            fontSize = 11.sp,
+            color = when {
+                ratio >= 1.0f -> androidx.compose.ui.graphics.Color(0xFF4CAF50) // 绿色：充足
+                ratio >= 0.8f -> themeColors.textPrimary                        // 正常
+                ratio >= 0.5f -> androidx.compose.ui.graphics.Color(0xFFFF9800) // 橙色：不足
+                else -> androidx.compose.ui.graphics.Color(0xFFF44336)          // 红色：严重不足
+            },
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
         )
     }
 }
