@@ -105,28 +105,16 @@ fun MainGameScreen(
         }
     }
     
-    // 播放背景音乐
+    // 播放背景音乐（只在第一次进入时启动，之后持续播放）
     val context = androidx.compose.ui.platform.LocalContext.current
-    DisposableEffect(Unit) {
-        println("🎵 [MainGameScreen] 开始播放背景音乐")
-        // 播放主题音乐（循环播放）
+    LaunchedEffect(Unit) {
+        println("🎵 [MainGameScreen] 确保背景音乐播放中")
+        // 尝试播放音乐（如果已经在播放则不会重复播放）
         com.citysimulator.game.audio.SoundManager.playMusic(
             context = context,
             musicResId = com.citysimulator.game.R.raw.main_theme,
             loop = true
         )
-        
-        onDispose {
-            println("🎵 [MainGameScreen] 暂停背景音乐")
-            // 离开主界面时暂停音乐（不停止，以便返回时恢复）
-            com.citysimulator.game.audio.SoundManager.pauseMusic()
-        }
-    }
-    
-    // 恢复背景音乐（从其他界面返回时）
-    LaunchedEffect(Unit) {
-        println("🎵 [MainGameScreen] 恢复背景音乐")
-        com.citysimulator.game.audio.SoundManager.resumeMusic()
     }
     
     // 建筑选择状态管理 - 使用本地状态

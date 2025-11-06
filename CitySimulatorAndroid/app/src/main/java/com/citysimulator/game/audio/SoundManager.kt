@@ -92,9 +92,19 @@ object SoundManager {
             return
         }
         
-        // 如果已经在播放相同的音乐，不重复播放
-        if (currentMusicResId == musicResId && musicPlayer?.isPlaying == true) {
-            return
+        // 如果是相同的音乐
+        if (currentMusicResId == musicResId && musicPlayer != null) {
+            // 如果正在播放，不做任何操作
+            if (musicPlayer?.isPlaying == true) {
+                Log.d(TAG, "🎵 音乐已在播放中，跳过")
+                return
+            }
+            // 如果暂停了，恢复播放
+            else {
+                Log.d(TAG, "🎵 恢复播放音乐")
+                resumeMusic()
+                return
+            }
         }
         
         try {
