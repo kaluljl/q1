@@ -102,70 +102,11 @@ fun SettingsScreen(
                 com.citysimulator.game.ui.component.AudioSettingsPanel()
             }
             
-            // 游戏设置区域
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsSectionHeader(
-                    title = "🎮 游戏",
-                    themeColors = currentTheme
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    icon = "🔔",
-                    title = "通知设置",
-                    subtitle = "管理游戏通知",
-                    onClick = { /* TODO: 实现通知设置 */ },
-                    themeColors = currentTheme
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    icon = "🎵",
-                    title = "音效设置",
-                    subtitle = "调整音效和音乐",
-                    onClick = { /* TODO: 实现音效设置 */ },
-                    themeColors = currentTheme
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    icon = "⚡",
-                    title = "性能优化",
-                    subtitle = "调整游戏性能选项",
-                    onClick = { /* TODO: 实现性能设置 */ },
-                    themeColors = currentTheme
-                )
-            }
-            
             // 数据设置区域
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsSectionHeader(
                     title = "💾 数据",
-                    themeColors = currentTheme
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    icon = "📂",
-                    title = "数据备份",
-                    subtitle = "备份您的游戏数据",
-                    onClick = { /* TODO: 实现数据备份 */ },
-                    themeColors = currentTheme
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    icon = "🔄",
-                    title = "数据恢复",
-                    subtitle = "从备份恢复数据",
-                    onClick = { /* TODO: 实现数据恢复 */ },
                     themeColors = currentTheme
                 )
             }
