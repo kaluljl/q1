@@ -276,6 +276,9 @@ fun CitySimulatorNavigation(
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
+                },
+                onNavigateToThemeSelector = {
+                    navController.navigate(CitySimulatorRoutes.THEME_SELECTOR)
                 }
             )
         }

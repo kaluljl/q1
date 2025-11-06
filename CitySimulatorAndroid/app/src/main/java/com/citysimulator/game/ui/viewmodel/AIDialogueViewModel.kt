@@ -129,7 +129,7 @@ class AIDialogueViewModel @Inject constructor(
                     append("社交需求: ${(needs.social.getAverage() * 100).toInt()}%\n")
                     
                     append("\n【你的重要记忆】\n")
-                    val memoryList = memories.take(3)
+                    val memoryList = memories.memories.take(3)
                     if (memoryList.isNotEmpty()) {
                         for (memory in memoryList) {
                             append("- ${memory.description} (${memory.importance.getDisplayName()})\n")
@@ -139,8 +139,9 @@ class AIDialogueViewModel @Inject constructor(
                     }
                     
                     append("\n【你的社交关系】\n")
-                    if (socialNetwork.isNotEmpty()) {
-                        val relationshipSummary = socialNetwork.groupBy { relation -> relation.type }
+                    val relationshipList = socialNetwork.relationships
+                    if (relationshipList.isNotEmpty()) {
+                        val relationshipSummary = relationshipList.groupBy { relation -> relation.type }
                         for ((type, relations) in relationshipSummary) {
                             append("- ${type.getDisplayName()}: ${relations.size}人\n")
                         }
