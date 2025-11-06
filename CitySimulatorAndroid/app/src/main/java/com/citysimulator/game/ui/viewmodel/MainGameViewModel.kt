@@ -101,12 +101,26 @@ class MainGameViewModel @Inject constructor(
                 }.collect { (buildings, resources) ->
                     println("📦 建筑数据更新: ${buildings.size} 座建筑")
                     
+                    // 如果是首次加载，将建筑添加到当前区域（主城区）
+                    val currentDistricts = _uiState.value.districts.toMutableMap()
+                    val currentDistrict = _uiState.value.currentDistrict
+                    
+                    // 如果当前区域为空且有建筑数据，初始化当前区域的建筑
+                    if (currentDistricts[currentDistrict]?.buildings?.isEmpty() == true && buildings.isNotEmpty()) {
+                        println("🏗️ 首次加载：将 ${buildings.size} 座建筑添加到 ${currentDistrict.displayName}")
+                        currentDistricts[currentDistrict] = DistrictData(
+                            district = currentDistrict,
+                            buildings = buildings.toMutableList()
+                        )
+                    }
+                    
                     _uiState.value = _uiState.value.copy(
                         buildings = buildings,
                         resources = resources,
                         population = emptyList(),
                         isLoading = false,
-                        error = null
+                        error = null,
+                        districts = currentDistricts
                     )
                 }
             } catch (e: Exception) {

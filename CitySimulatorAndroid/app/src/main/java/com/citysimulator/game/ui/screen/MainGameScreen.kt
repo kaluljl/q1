@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.derivedStateOf
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,15 +194,23 @@ fun MainGameScreen(
     }
     
     // 获取所有区域的建筑总数（用于市民初始化）
-    val allDistrictsBuildings = remember(uiState.districts) {
-        uiState.districts.values.flatMap { it.buildings }
+    // 使用 derivedStateOf 确保 districts 变化时重新计算
+    val allDistrictsBuildings by remember {
+        derivedStateOf {
+            uiState.districts.values.flatMap { it.buildings }
+        }
     }
     
     // 只在首次加载或总建筑数变化时初始化市民（不受区域切换影响）
     var lastTotalBuildingCount by remember { mutableStateOf(0) }
-    LaunchedEffect(allDistrictsBuildings.size) {
+    LaunchedEffect(allDistrictsBuildings.size, uiState.districts) {
         if (allDistrictsBuildings.size != lastTotalBuildingCount && allDistrictsBuildings.isNotEmpty()) {
             println("🔧 总建筑数变化: $lastTotalBuildingCount -> ${allDistrictsBuildings.size}，初始化市民")
+            citizenViewModel.initializeCitizens(allDistrictsBuildings)
+            lastTotalBuildingCount = allDistrictsBuildings.size
+        } else if (allDistrictsBuildings.isNotEmpty() && lastTotalBuildingCount == 0) {
+            // 首次加载时立即初始化
+            println("🎬 首次加载：立即初始化 ${allDistrictsBuildings.size} 座建筑的市民")
             citizenViewModel.initializeCitizens(allDistrictsBuildings)
             lastTotalBuildingCount = allDistrictsBuildings.size
         }
