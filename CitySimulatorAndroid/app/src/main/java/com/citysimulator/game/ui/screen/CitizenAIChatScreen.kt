@@ -32,13 +32,19 @@ import kotlinx.coroutines.launch
 fun CitizenAIChatScreen(
     citizen: Citizen,
     onBack: () -> Unit,
-    viewModel: AIDialogueViewModel = hiltViewModel()
+    viewModel: AIDialogueViewModel = hiltViewModel(),
+    citizenViewModel: com.citysimulator.game.ui.viewmodel.CitizenViewModel = hiltViewModel()
 ) {
     var userInput by remember { mutableStateOf("") }
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    
+    // 设置CitizenViewModel（只设置一次）
+    LaunchedEffect(Unit) {
+        viewModel.setCitizenViewModel(citizenViewModel)
+    }
     
     // 初始化对话
     LaunchedEffect(citizen.id) {

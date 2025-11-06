@@ -27,9 +27,15 @@ class AIDialogueViewModel @Inject constructor(
     private val deepSeekClient: DeepSeekClient,
     private val cityRepository: CityRepository,
     private val buildingRepository: BuildingRepository,
-    private val resourceRepository: ResourceRepository,
-    private val citizenViewModel: CitizenViewModel
+    private val resourceRepository: ResourceRepository
 ) : ViewModel() {
+    
+    // CitizenViewModel不能在ViewModel中注入，需要从外部传入
+    private var citizenViewModel: CitizenViewModel? = null
+    
+    fun setCitizenViewModel(viewModel: CitizenViewModel) {
+        this.citizenViewModel = viewModel
+    }
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -94,14 +100,20 @@ class AIDialogueViewModel @Inject constructor(
                     }
                 }
                 
-                // 获取市民的深度AI数据
-                val personality = citizenViewModel.getOrGeneratePersonality(citizen.id)
-                val needs = citizenViewModel.getOrGenerateNeeds(citizen.id, citizen)
-                val memories = citizenViewModel.getOrGenerateMemories(citizen.id, citizen)
-                val socialNetwork = citizenViewModel.getOrGenerateSocialNetwork(citizen.id)
-                val gossips = citizenViewModel.getCitizenGossips(citizen.id, city?.happiness ?: 0.6f)
-                val events = citizenViewModel.getCitizenEvents(citizen.id, city?.happiness ?: 0.6f)
-                val citizenTrust = citizenViewModel.getCitizenTrust(citizen.id)
+                // 获取市民的深度AI数据（如果CitizenViewModel可用）
+                val personality = citizenViewModel?.getOrGeneratePersonality(citizen.id) 
+                    ?: com.citysimulator.game.data.model.PersonalityTraits()
+                val needs = citizenViewModel?.getOrGenerateNeeds(citizen.id, citizen) 
+                    ?: com.citysimulator.game.data.model.MaslowNeeds()
+                val memories = citizenViewModel?.getOrGenerateMemories(citizen.id, citizen) 
+                    ?: com.citysimulator.game.data.model.CitizenMemoryCollection(citizen.id)
+                val socialNetwork = citizenViewModel?.getOrGenerateSocialNetwork(citizen.id) 
+                    ?: com.citysimulator.game.data.model.SocialNetwork(citizen.id)
+                val gossips = citizenViewModel?.getCitizenGossips(citizen.id, city?.happiness ?: 0.6f) 
+                    ?: emptyList()
+                val events = citizenViewModel?.getCitizenEvents(citizen.id, city?.happiness ?: 0.6f) 
+                    ?: emptyList()
+                val citizenTrust = citizenViewModel?.getCitizenTrust(citizen.id) ?: 0.5f
                 
                 // 构建完整的对话上下文（包含城市+市民深度信息）
                 val cityContext = buildString {
