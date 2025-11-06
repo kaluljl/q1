@@ -141,9 +141,9 @@ class AIDialogueViewModel @Inject constructor(
                     append("\n【你的社交关系】\n")
                     val relationshipList = socialNetwork.relationships
                     if (relationshipList.isNotEmpty()) {
-                        val relationshipSummary = relationshipList.groupBy { relation -> relation.type }
-                        for ((type, relations) in relationshipSummary) {
-                            append("- ${type.getDisplayName()}: ${relations.size}人\n")
+                        val relationshipSummary = relationshipList.groupBy { relation -> relation.relationshipType }
+                        for ((relType, relations) in relationshipSummary) {
+                            append("- ${relType.getDisplayName()}: ${relations.size}人\n")
                         }
                     } else {
                         append("- 暂无社交关系\n")
