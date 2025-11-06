@@ -842,7 +842,17 @@ fun MainGameScreen(
                 )
                 
                 // 市民显示层（可交互）- 改进的视觉效果 + 平滑移动动画
-                if (citizens.isNotEmpty()) {
+                // 只显示属于当前区域建筑的市民
+                val currentDistrictBuildingIds = buildings.map { it.id }.toSet()
+                val currentDistrictCitizens = citizens.filter { citizen ->
+                    // 通过市民的家庭住址判断是否属于当前区域
+                    // 检查当前区域是否有建筑在该位置
+                    buildings.any { building ->
+                        building.position.x == citizen.homeX && building.position.y == citizen.homeY
+                    }
+                }
+                
+                if (currentDistrictCitizens.isNotEmpty()) {
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val gridColumns = 20
                         val gridRows = 30
@@ -850,7 +860,7 @@ fun MainGameScreen(
                         val cellHeight = maxHeight / gridRows
                         
                         // 绘制可点击的市民（使用改进的SimpleCitizenMarker组件 + 动画）
-                        citizens.forEach { citizen ->
+                        currentDistrictCitizens.forEach { citizen ->
                             // 使用key确保Compose正确追踪每个市民
                             key(citizen.id) {
                                 // 计算目标位置
