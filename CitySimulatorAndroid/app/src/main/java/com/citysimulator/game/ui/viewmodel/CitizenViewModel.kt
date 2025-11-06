@@ -54,10 +54,37 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
     
     /**
      * 初始化市民（为已有建筑生成市民）
+     * 智能初始化：如果已有市民，只为新建筑添加市民；如果没有市民，全新生成
      */
     fun initializeCitizens(buildings: List<Building>) {
         viewModelScope.launch {
-            println("👥 [CitizenViewModel] 开始初始化市民，建筑数量: ${buildings.size}")
+            println("👥 [CitizenViewModel] 开始初始化市民，建筑数量: ${buildings.size}，当前市民数: ${_citizens.value.size}")
+            
+            // 如果已经有市民，说明不是首次初始化，保留现有市民
+            if (_citizens.value.isNotEmpty()) {
+                println("✅ 已有市民 ${_citizens.value.size} 个，保持不变")
+                
+                // 检查是否有新建筑需要添加市民
+                val existingBuildingIds = _citizens.value.map { "${it.homeX},${it.homeY}" }.toSet()
+                val newBuildings = buildings.filter { building ->
+                    "${building.position.x},${building.position.y}" !in existingBuildingIds
+                }
+                
+                if (newBuildings.isNotEmpty()) {
+                    println("🏗️ 发现 ${newBuildings.size} 个新建筑，为其生成市民")
+                    val additionalCitizens = newBuildings.flatMap { building ->
+                        CitizenGenerator.generateCitizensForBuilding(building)
+                    }
+                    if (additionalCitizens.isNotEmpty()) {
+                        _citizens.value = _citizens.value + additionalCitizens
+                        println("👥 新增 ${additionalCitizens.size} 个市民，总数: ${_citizens.value.size}")
+                    }
+                }
+                return@launch
+            }
+            
+            // 首次初始化：生成全新市民
+            println("🆕 首次初始化，生成全新市民")
             val newCitizens = CitizenGenerator.generateInitialCitizens(buildings)
             _citizens.value = newCitizens
             println("🏠 为 ${buildings.size} 个建筑生成了 ${newCitizens.size} 个市民")
