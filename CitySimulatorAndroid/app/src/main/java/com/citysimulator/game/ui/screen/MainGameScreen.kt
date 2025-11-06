@@ -3,9 +3,6 @@ package com.citysimulator.game.ui.screen
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,11 +20,8 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -700,42 +694,17 @@ fun MainGameScreen(
             shape = RoundedCornerShape(16.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // 添加缩放和平移状态（默认放大到1.8倍）
-                var scale by remember { mutableStateOf(1.8f) }
-                var offsetX by remember { mutableStateOf(0f) }
-                var offsetY by remember { mutableStateOf(0f) }
-                
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                scale = (scale * zoom).coerceIn(0.5f, 4f) // 限制缩放范围 0.5x - 4x
-                                offsetX += pan.x
-                                offsetY += pan.y
-                            }
-                        }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                translationX = offsetX,
-                                translationY = offsetY
-                            )
-                    ) {
-                        CityGrid(
-                            buildings = buildings,
-                            selectedBuildingType = selectedBuildingType,
-                            selectedSimplifiedBuilding = selectedSimplifiedBuilding,
-                            isPlacementMode = isPlacementMode,
-                            onBuildingClick = { building ->
-                                // 点击建筑时显示拆除选项
-                                buildingToDelete = building
-                                showDeleteDialog = true
-                            },
-                            onEmptyGridClick = { x, y ->
+                CityGrid(
+                    buildings = buildings,
+                    selectedBuildingType = selectedBuildingType,
+                    selectedSimplifiedBuilding = selectedSimplifiedBuilding,
+                    isPlacementMode = isPlacementMode,
+                    onBuildingClick = { building ->
+                        // 点击建筑时显示拆除选项
+                        buildingToDelete = building
+                        showDeleteDialog = true
+                    },
+                    onEmptyGridClick = { x, y ->
                         // 防抖：避免快速连续点击导致崩溃
                         val currentTime = System.currentTimeMillis()
                         if (currentTime - lastBuildTime < 500) { // 500ms 防抖
@@ -889,41 +858,6 @@ fun MainGameScreen(
                 StarsEffect(
                     isNight = hour !in 6..18,
                     modifier = Modifier.fillMaxSize()
-                )
-                    }
-                }
-                
-                // 重置视图按钮（浮动在右下角）
-                FloatingActionButton(
-                    onClick = {
-                        scale = 1.8f
-                        offsetX = 0f
-                        offsetY = 0f
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp),
-                    containerColor = currentTheme.primary.copy(alpha = 0.8f)
-                ) {
-                    Text(
-                        text = "🔄",
-                        fontSize = 20.sp
-                    )
-                }
-                
-                // 缩放提示（左下角）
-                Text(
-                    text = "缩放: ${String.format("%.1f", scale)}x",
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp)
-                        .background(
-                            color = Color.Black.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = Color.White,
-                    fontSize = 12.sp
                 )
             }
         }
@@ -1438,8 +1372,8 @@ private fun CityGrid(
     onEmptyGridClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val gridColumns = 40 // 40列（扩大地图）
-    val gridRows = 60 // 60行（扩大地图）
+    val gridColumns = 20 // 20列
+    val gridRows = 30 // 30行（增加到30行以填满屏幕）
     
     // 优化：预先创建建筑位置索引，避免每次查找
     val buildingMap = remember(buildings) {
@@ -1450,10 +1384,10 @@ private fun CityGrid(
         columns = GridCells.Fixed(gridColumns),
         modifier = modifier
             .fillMaxSize()
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(1.dp),
-        verticalArrangement = Arrangement.spacedBy(1.dp),
-        contentPadding = PaddingValues(2.dp),
+            .padding(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.5.dp),
+        verticalArrangement = Arrangement.spacedBy(0.5.dp),
+        contentPadding = PaddingValues(0.dp),
         userScrollEnabled = false // 禁用滚动，让市民和地图同步
     ) {
         items(gridColumns * gridRows, key = { it }) { index ->
