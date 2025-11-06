@@ -77,9 +77,14 @@ class CitizenSimulationEngine {
         hour: Int,
         dayOfWeek: DayOfWeek
     ): CitizenActivity {
-        // 睡眠时间
-        if (hour in 23..23 || hour in 0..5) {
+        // 深夜睡眠时间 (22:00 - 6:00)
+        if (hour in 22..23 || hour in 0..5) {
             return CitizenActivity.SLEEPING
+        }
+        
+        // 早晨起床 (6:00 - 8:00)
+        if (hour in 6..7) {
+            return CitizenActivity.AT_HOME
         }
         
         // 工作日
@@ -89,39 +94,41 @@ class CitizenSimulationEngine {
             return when (citizen.workingHours) {
                 WorkingHours.STANDARD -> {
                     when (hour) {
-                        in 6..8 -> CitizenActivity.AT_HOME
-                        in 8..9 -> CitizenActivity.COMMUTING_TO_WORK
-                        in 9..17 -> CitizenActivity.WORKING
-                        in 17..18 -> CitizenActivity.COMMUTING_HOME
+                        in 8..8 -> CitizenActivity.COMMUTING_TO_WORK  // 8:00 出门上班
+                        in 9..17 -> CitizenActivity.WORKING            // 9:00-17:00 工作
+                        in 18..18 -> CitizenActivity.COMMUTING_HOME    // 18:00 下班回家
+                        in 19..21 -> CitizenActivity.AT_HOME          // 19:00-21:00 在家休息
                         else -> getLeisureActivity(citizen, hour)
                     }
                 }
                 WorkingHours.MORNING -> {
                     when (hour) {
-                        in 5..6 -> CitizenActivity.COMMUTING_TO_WORK
-                        in 6..14 -> CitizenActivity.WORKING
-                        in 14..15 -> CitizenActivity.COMMUTING_HOME
+                        in 5..5 -> CitizenActivity.COMMUTING_TO_WORK  // 5:00 出门
+                        in 6..13 -> CitizenActivity.WORKING            // 6:00-13:00 工作
+                        in 14..14 -> CitizenActivity.COMMUTING_HOME    // 14:00 下班
                         else -> getLeisureActivity(citizen, hour)
                     }
                 }
                 WorkingHours.EVENING -> {
                     when (hour) {
-                        in 6..13 -> getLeisureActivity(citizen, hour)
-                        in 13..14 -> CitizenActivity.COMMUTING_TO_WORK
-                        in 14..22 -> CitizenActivity.WORKING
-                        in 22..23 -> CitizenActivity.COMMUTING_HOME
+                        in 8..13 -> getLeisureActivity(citizen, hour)  // 上午休闲
+                        in 14..14 -> CitizenActivity.COMMUTING_TO_WORK // 14:00 出门
+                        in 15..21 -> CitizenActivity.WORKING            // 15:00-21:00 工作
+                        in 22..22 -> CitizenActivity.COMMUTING_HOME    // 22:00 下班
                         else -> CitizenActivity.AT_HOME
                     }
                 }
                 WorkingHours.NIGHT -> {
                     when (hour) {
-                        in 6..21 -> getLeisureActivity(citizen, hour)
-                        in 21..22 -> CitizenActivity.COMMUTING_TO_WORK
-                        else -> CitizenActivity.WORKING
+                        in 8..20 -> getLeisureActivity(citizen, hour)  // 白天休闲
+                        in 21..21 -> CitizenActivity.COMMUTING_TO_WORK // 21:00 出门
+                        in 22..23, in 0..5 -> CitizenActivity.WORKING  // 22:00-5:00 工作
+                        in 6..6 -> CitizenActivity.COMMUTING_HOME      // 6:00 下班
+                        else -> CitizenActivity.AT_HOME
                     }
                 }
                 WorkingHours.FLEXIBLE -> {
-                    if (Random.nextFloat() < 0.7f && hour in 9..17) {
+                    if (Random.nextFloat() < 0.6f && hour in 9..18) {
                         CitizenActivity.WORKING
                     } else {
                         getLeisureActivity(citizen, hour)

@@ -236,6 +236,11 @@ fun MainGameScreen(
         viewModel.updateCurrentTime(currentGameDate)
     }
     
+    // 同步游戏时间到 CitizenViewModel（用于基于时间的市民行为）
+    LaunchedEffect(currentGameDate) {
+        citizenViewModel.updateGameTime(currentGameDate)
+    }
+    
     // 监听游戏时间变化，每个月生成市民心声
     LaunchedEffect(currentGameDate) {
         // 注意：只监听 currentGameDate，不监听其他状态

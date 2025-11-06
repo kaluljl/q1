@@ -200,6 +200,15 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
     }
     
     /**
+     * 更新模拟使用的游戏时间
+     */
+    private var gameTime: Date = Date()
+    
+    fun updateGameTime(time: Date) {
+        gameTime = time
+    }
+    
+    /**
      * 启动模拟
      */
     private fun startSimulation(buildings: List<Building>) {
@@ -219,7 +228,16 @@ class CitizenViewModel @Inject constructor() : ViewModel() {
                 delay(3000)
                 
                 updateCount++
-                val currentTime = Date()
+                val currentTime = gameTime // 使用游戏时间而不是系统时间
+                
+                // 输出游戏时间（每10次更新输出一次）
+                if (updateCount % 10 == 0) {
+                    val calendar = java.util.Calendar.getInstance().apply { time = currentTime }
+                    val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+                    val minute = calendar.get(java.util.Calendar.MINUTE)
+                    val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+                    println("⏰ [市民系统] 游戏时间: ${hour}:${String.format("%02d", minute)}, 星期${dayOfWeek}")
+                }
                 
                 // 优化：更新50%的市民（让城市看起来更有活力）
                 val updatePercentage = 0.5f
