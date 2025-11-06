@@ -35,10 +35,13 @@ class CitySimulatorApplication : Application() {
         com.citysimulator.game.ui.theme.ThemeManager.init(this)
         println("🎨 [CitySimulatorApplication] ThemeManager已初始化")
         
-        // TODO: 添加应用初始化逻辑
+        // 初始化音频系统
+        com.citysimulator.game.audio.SoundManager.initialize(this)
+        println("🎵 [CitySimulatorApplication] SoundManager已初始化")
+        
+        // TODO: 添加其他应用初始化逻辑
         // - 初始化数据库
         // - 设置默认游戏数据
-        // - 初始化音效系统
         // - 设置用户偏好
     }
 }

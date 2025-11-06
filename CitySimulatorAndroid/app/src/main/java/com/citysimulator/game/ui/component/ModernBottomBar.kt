@@ -125,7 +125,13 @@ private fun BottomBarButton(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable { 
+                // 播放按钮点击音效
+                com.citysimulator.game.audio.SoundManager.playSound(
+                    com.citysimulator.game.audio.SoundType.BUTTON_CLICK
+                )
+                onClick()
+            }
             .background(
                 Brush.verticalGradient(
                     colors = listOf(

@@ -89,6 +89,19 @@ fun SettingsScreen(
                 )
             }
             
+            // 音频设置区域
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                SettingsSectionHeader(
+                    title = "🎵 音频",
+                    themeColors = currentTheme
+                )
+            }
+            
+            item {
+                com.citysimulator.game.ui.component.AudioSettingsPanel()
+            }
+            
             // 游戏设置区域
             item {
                 Spacer(modifier = Modifier.height(8.dp))
