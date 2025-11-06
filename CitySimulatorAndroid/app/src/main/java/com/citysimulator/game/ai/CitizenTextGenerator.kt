@@ -332,11 +332,83 @@ ${if (cityProblems.isEmpty()) "整体环境欠佳" else cityProblems.joinToStrin
     }
     
     private fun generateFallbackDiary(citizen: Citizen): String {
-        return when {
-            citizen.happiness > 0.7f -> "今天心情不错，工作顺利，生活充实。希望每天都这样！"
-            citizen.happiness < 0.4f -> "最近压力有点大，感觉生活不太如意。需要找时间放松一下。"
-            else -> "普通的一天，按部就班地工作和生活。平凡但也还算稳定。"
+        // 根据市民状态动态生成多样化的日记内容
+        val occupation = citizen.occupation ?: "待业"
+        val happinessLevel = citizen.happiness
+        val healthLevel = citizen.health
+        val wealthLevel = citizen.wealth
+        val maritalStatus = citizen.maritalStatus
+        
+        // 根据不同维度组合生成日记
+        val diaryTemplates = mutableListOf<String>()
+        
+        // === 基于幸福度的日记 ===
+        when {
+            happinessLevel > 0.8f -> {
+                diaryTemplates.addAll(listOf(
+                    "今天真是美好的一天！${if (occupation != "待业") "工作很顺利，" else ""}心情特别舒畅。生活就该这样充满阳光！",
+                    "早上起床就感觉精神满满。${if (maritalStatus == MaritalStatus.MARRIED) "和家人一起吃了早餐，" else ""}一整天都保持着好心情。",
+                    "最近的生活真的很满足。${if (wealthLevel > 5000) "经济状况不错，" else ""}每天都过得很充实，希望能一直这样！",
+                    "今天遇到了很多开心的事。${if (occupation != "待业") "同事们都很友好，" else ""}感觉生活充满了希望。",
+                    "心情好的时候做什么都顺利。${if (healthLevel > 0.8f) "身体也很健康，" else ""}真希望每天都这样！"
+                ))
+            }
+            happinessLevel > 0.6f -> {
+                diaryTemplates.addAll(listOf(
+                    "今天还算不错。${if (occupation != "待业") "${occupation}的工作虽然忙碌，但还算顺心。" else "虽然还没找到工作，但心态还好。"}",
+                    "平凡的一天。${if (maritalStatus == MaritalStatus.MARRIED) "晚上和家人聊了聊天，" else ""}感觉生活还算稳定。",
+                    "日子就这样一天天过着。${if (wealthLevel > 3000) "手头还算宽裕，" else ""}没什么大起大落，也挺好的。",
+                    "今天按部就班地度过。${if (healthLevel > 0.7f) "身体状况还不错，" else ""}继续加油吧。",
+                    "普通但也充实的一天。${if (occupation != "待业") "工作完成得还可以，" else ""}希望明天会更好。"
+                ))
+            }
+            happinessLevel > 0.4f -> {
+                diaryTemplates.addAll(listOf(
+                    "今天感觉有点累。${if (occupation != "待业") "${occupation}的工作压力不小，" else "找工作的过程让人疲惫，"}需要好好休息。",
+                    "心情有些低落。${if (wealthLevel < 2000) "经济压力让人喘不过气，" else ""}不知道什么时候能好转。",
+                    "最近总觉得生活缺少点什么。${if (maritalStatus == MaritalStatus.SINGLE) "也许是太孤单了吧。" else ""}",
+                    "今天又是平淡无奇的一天。${if (healthLevel < 0.6f) "身体也不太舒服，" else ""}感觉有点迷茫。",
+                    "日子过得有些乏味。${if (occupation != "待业") "工作也没什么新意，" else ""}希望能有些改变。"
+                ))
+            }
+            else -> {
+                diaryTemplates.addAll(listOf(
+                    "今天真的很糟糕。${if (occupation != "待业") "工作上出了问题，" else "还是没找到工作，"}心情跌到谷底。",
+                    "压力大到快喘不过气了。${if (wealthLevel < 1000) "钱包空空如也，" else ""}不知道该怎么办。",
+                    "感觉生活一团糟。${if (healthLevel < 0.5f) "身体也不好，" else ""}真的很想逃离这一切。",
+                    "最近的日子实在太难熬了。${if (maritalStatus == MaritalStatus.DIVORCED) "离婚之后更加孤独，" else ""}看不到希望。",
+                    "今天又是崩溃的一天。${if (occupation != "待业") "${occupation}的工作让我身心俱疲，" else "失业的日子太煎熬了，"}什么时候才能好起来？"
+                ))
+            }
         }
+        
+        // === 基于特殊状态的日记 ===
+        if (occupation == "待业" && happinessLevel < 0.5f) {
+            diaryTemplates.add("又一天过去了，还是没找到合适的工作。投了好几份简历都石沉大海，心里真的很焦虑。")
+        }
+        
+        if (wealthLevel < 500 && happinessLevel < 0.6f) {
+            diaryTemplates.add("钱包越来越瘪了，这个月的开销又超支了。得想办法开源节流才行。")
+        }
+        
+        if (healthLevel < 0.5f) {
+            diaryTemplates.add("身体越来越差了，${if (wealthLevel < 2000) "但又没钱去医院，" else ""}真担心会出什么大问题。")
+        }
+        
+        if (maritalStatus == MaritalStatus.SINGLE && citizen.age > 30) {
+            diaryTemplates.add("又是一个人的夜晚。看着周围的人都成双成对，心里难免有些羡慕。什么时候能遇到对的人呢？")
+        }
+        
+        if (maritalStatus == MaritalStatus.MARRIED && happinessLevel > 0.7f) {
+            diaryTemplates.add("今天和爱人一起度过了美好的时光。有家人的陪伴，再累也觉得值得。")
+        }
+        
+        if (citizen.age > 60 && healthLevel > 0.7f) {
+            diaryTemplates.add("退休后的生活虽然清闲，但也挺充实的。${if (wealthLevel > 5000) "养老金够用，" else ""}每天散散步，和老朋友聊聊天，也挺好。")
+        }
+        
+        // 随机选择一条日记
+        return diaryTemplates.random()
     }
     
     private fun generateFallbackComplaint(
