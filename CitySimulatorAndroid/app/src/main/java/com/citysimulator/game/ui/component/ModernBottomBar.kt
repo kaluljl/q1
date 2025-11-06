@@ -108,6 +108,17 @@ fun ModernBottomBar(
                 hasNotification = false,
                 themeColors = currentTheme
             )
+            
+            // 市民列表按钮（可选）
+            if (onCitizenListClick != null) {
+                BottomBarButton(
+                    icon = "👥",
+                    label = "市民",
+                    onClick = onCitizenListClick,
+                    hasNotification = false,
+                    themeColors = currentTheme
+                )
+            }
         }
     }
 }

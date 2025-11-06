@@ -248,10 +248,10 @@ fun MainGameScreen(
         val minute = calendar.get(Calendar.MINUTE)
         val gameTimeString = String.format("%d年%02d月%02d日 %02d:%02d", year, month, day, hour, minute)
         
-        // 生成市民心声（每个月生成一次）
+        // 生成市民心声（每个月生成一次）- 基于所有区域的建筑
         // ViewModel 内部会检查月份，避免重复生成
         feedbackViewModel.generateFeedback(
-            buildings = buildings,
+            buildings = allDistrictsBuildings,
             resources = listOf(), // 使用空列表，因为resources还未定义
             goldAmount = goldAmount,
             population = currentPopulation,
@@ -286,9 +286,9 @@ fun MainGameScreen(
     // 获取已实施的政策
     val implementedPolicies by policyViewModel.implementedPolicies.collectAsStateWithLifecycle()
     
-    // 计算每月收入（包含政策效果）
-    val monthlyIncome = remember(buildings, implementedPolicies) {
-        val baseIncome = buildings.sumOf { it.income }
+    // 计算每月收入（包含政策效果）- 基于所有区域的建筑
+    val monthlyIncome = remember(allDistrictsBuildings, implementedPolicies) {
+        val baseIncome = allDistrictsBuildings.sumOf { it.income }
         val incomeWithPolicy = com.citysimulator.game.ai.PolicyEffectCalculator.applyPolicyToGoldIncome(
             baseIncome,
             implementedPolicies
@@ -332,10 +332,10 @@ fun MainGameScreen(
         )
     )) }
     
-    // 计算公用事业状态
-    LaunchedEffect(buildings, currentPopulation) {
+    // 计算公用事业状态 - 基于所有区域的建筑
+    LaunchedEffect(allDistrictsBuildings, currentPopulation) {
         val status = com.citysimulator.game.ai.UtilityManagementSystem.calculateUtilityStatus(
-            buildings = buildings,
+            buildings = allDistrictsBuildings,
             population = currentPopulation
         )
         val impact = com.citysimulator.game.ai.UtilityManagementSystem.calculateUtilityImpact(status)
@@ -350,10 +350,10 @@ fun MainGameScreen(
         println("🏗️ 建筑效率: ${(impact.buildingEfficiency * 100).toInt()}%")
     }
     
-    // 计算城市繁荣度（应用政策效果）
-    LaunchedEffect(buildings, goldAmount, resources, implementedPolicies) {
+    // 计算城市繁荣度（应用政策效果）- 基于所有区域的建筑
+    LaunchedEffect(allDistrictsBuildings, goldAmount, resources, implementedPolicies) {
         val baseProsperity = prosperityEngine.calculateProsperity(
-            buildings = buildings,
+            buildings = allDistrictsBuildings,
             resources = resources,
             population = currentPopulation,
             goldAmount = goldAmount
@@ -374,11 +374,11 @@ fun MainGameScreen(
         }
     }
     
-    // 优化：降低更新频率，使用 debounce
-    LaunchedEffect(buildings.size, goldAmount) {
+    // 优化：降低更新频率，使用 debounce - 基于所有区域的建筑
+    LaunchedEffect(allDistrictsBuildings.size, goldAmount) {
         delay(2000) // 防抖2秒
         populationViewModel.updatePopulation(
-            buildings = buildings,
+            buildings = allDistrictsBuildings,
             resources = resources,
             goldAmount = goldAmount,
             timeElapsed = 1.0
@@ -406,16 +406,16 @@ fun MainGameScreen(
             }
         }
 
-        // 金币收入系统（应用政策效果）
+        // 金币收入系统（应用政策效果）- 基于所有区域的建筑
         // 游戏时间：每30秒 = 游戏内1个月（平衡游戏节奏）
-        LaunchedEffect(buildings, implementedPolicies, currentPopulation) {
+        LaunchedEffect(allDistrictsBuildings.size, implementedPolicies, currentPopulation) {
             var monthCount = 0
             while (true) {
                 kotlinx.coroutines.delay(30000) // 每30秒结算一次，作为游戏内的"一个月"
                 monthCount++
                 
-                // 计算月度收入
-                val baseIncome = buildings.sumOf { building -> building.income }
+                // 计算月度收入（所有区域）
+                val baseIncome = allDistrictsBuildings.sumOf { building -> building.income }
                 if (baseIncome > 0) {
                     // 应用政策效果到收入
                     val totalIncome = com.citysimulator.game.ai.PolicyEffectCalculator.applyPolicyToGoldIncome(
@@ -439,14 +439,14 @@ fun MainGameScreen(
             }
         }
         
-        // 优化：大幅降低任务更新频率到15秒
-        LaunchedEffect(buildings.size, currentPopulation, goldAmount) {
+        // 优化：大幅降低任务更新频率到15秒 - 基于所有区域的建筑
+        LaunchedEffect(allDistrictsBuildings.size, currentPopulation, goldAmount) {
             while (true) {
                 delay(15000) // 从5秒改为15秒
                 
-                // 统计各类建筑数量（优先使用customName反向识别）
+                // 统计各类建筑数量（优先使用customName反向识别）- 所有区域
                 val buildingCount = mutableMapOf<com.citysimulator.game.data.model.SimplifiedBuildingType, Int>()
-                buildings.forEach { building ->
+                allDistrictsBuildings.forEach { building ->
                     // 尝试通过customName识别简化建筑类型
                     val simplifiedType = when (building.customName) {
                         "土路" -> com.citysimulator.game.data.model.SimplifiedBuildingType.DIRT_ROAD
@@ -476,8 +476,8 @@ fun MainGameScreen(
                     buildingCount[simplifiedType] = (buildingCount[simplifiedType] ?: 0) + 1
                 }
                 
-                // 计算月收入
-                val monthlyIncome = buildings.sumOf { building -> building.income }
+                // 计算月收入（所有区域）
+                val monthlyIncome = allDistrictsBuildings.sumOf { building -> building.income }
                 
                 // 更新任务进度
                 taskViewModel.updateTasksBasedOnCityState(
