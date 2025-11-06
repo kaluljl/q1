@@ -129,8 +129,9 @@ class AIDialogueViewModel @Inject constructor(
                     append("社交需求: ${(needs.social.getAverage() * 100).toInt()}%\n")
                     
                     append("\n【你的重要记忆】\n")
-                    if (memories.isNotEmpty()) {
-                        memories.take(3).forEach { memory ->
+                    val memoryList = memories.take(3)
+                    if (memoryList.isNotEmpty()) {
+                        for (memory in memoryList) {
                             append("- ${memory.description} (${memory.importance.getDisplayName()})\n")
                         }
                     } else {
@@ -139,8 +140,8 @@ class AIDialogueViewModel @Inject constructor(
                     
                     append("\n【你的社交关系】\n")
                     if (socialNetwork.isNotEmpty()) {
-                        val relationshipSummary = socialNetwork.groupBy { it.type }
-                        relationshipSummary.forEach { (type, relations) ->
+                        val relationshipSummary = socialNetwork.groupBy { relation -> relation.type }
+                        for ((type, relations) in relationshipSummary) {
                             append("- ${type.getDisplayName()}: ${relations.size}人\n")
                         }
                     } else {
@@ -148,8 +149,9 @@ class AIDialogueViewModel @Inject constructor(
                     }
                     
                     append("\n【最近听到的八卦】\n")
-                    if (gossips.isNotEmpty()) {
-                        gossips.take(2).forEach { gossip ->
+                    val gossipList = gossips.take(2)
+                    if (gossipList.isNotEmpty()) {
+                        for (gossip in gossipList) {
                             append("- ${gossip.content} (${gossip.sentiment.getDisplayName()})\n")
                         }
                     } else {
@@ -157,8 +159,9 @@ class AIDialogueViewModel @Inject constructor(
                     }
                     
                     append("\n【最近的城市事件】\n")
-                    if (events.isNotEmpty()) {
-                        events.take(2).forEach { event ->
+                    val eventList = events.take(2)
+                    if (eventList.isNotEmpty()) {
+                        for (event in eventList) {
                             append("- ${event.title}: ${event.description}\n")
                         }
                     } else {
