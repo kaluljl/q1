@@ -125,7 +125,9 @@ class TaskViewModel @Inject constructor(
         population: Int,
         buildingCount: Map<SimplifiedBuildingType, Int>,
         monthlyIncome: Int,
-        goldAmount: Int
+        goldAmount: Int,
+        cityHappiness: Float = 0.6f,
+        currentMonth: Int = 0
     ) {
         viewModelScope.launch {
             val currentTasks = _tasks.value.toMutableList()
@@ -183,6 +185,32 @@ class TaskViewModel @Inject constructor(
             }
             
             println("📋 当前任务总数: ${currentTasks.size}")
+            
+            // 尝试生成AI任务（10%概率）
+            try {
+                if (population >= 20 && kotlin.random.Random.nextFloat() < 0.1f) {
+                    val aiTask = com.citysimulator.game.ai.AITaskGenerator.generateAITask(
+                        population = population,
+                        goldAmount = goldAmount,
+                        buildingCount = buildingCount,
+                        monthlyIncome = monthlyIncome,
+                        cityHappiness = cityHappiness,
+                        currentMonth = currentMonth
+                    )
+                    
+                    if (aiTask != null) {
+                        // 检查是否已存在相同ID的任务
+                        val existingAITask = currentTasks.find { it.id == aiTask.id }
+                        if (existingAITask == null) {
+                            currentTasks.add(aiTask)
+                            _showNewTaskNotification.value = true
+                            println("🤖 AI任务生成: ${aiTask.title}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                println("❌ AI任务生成失败: ${e.message}")
+            }
             
             _tasks.value = currentTasks
             
