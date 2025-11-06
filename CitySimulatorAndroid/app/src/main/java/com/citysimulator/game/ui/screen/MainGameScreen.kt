@@ -700,8 +700,8 @@ fun MainGameScreen(
             shape = RoundedCornerShape(16.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // 添加缩放和平移状态
-                var scale by remember { mutableStateOf(1f) }
+                // 添加缩放和平移状态（默认放大到1.8倍）
+                var scale by remember { mutableStateOf(1.8f) }
                 var offsetX by remember { mutableStateOf(0f) }
                 var offsetY by remember { mutableStateOf(0f) }
                 
@@ -710,7 +710,7 @@ fun MainGameScreen(
                         .fillMaxSize()
                         .pointerInput(Unit) {
                             detectTransformGestures { _, pan, zoom, _ ->
-                                scale = (scale * zoom).coerceIn(0.5f, 3f) // 限制缩放范围 0.5x - 3x
+                                scale = (scale * zoom).coerceIn(0.5f, 4f) // 限制缩放范围 0.5x - 4x
                                 offsetX += pan.x
                                 offsetY += pan.y
                             }
@@ -896,7 +896,7 @@ fun MainGameScreen(
                 // 重置视图按钮（浮动在右下角）
                 FloatingActionButton(
                     onClick = {
-                        scale = 1f
+                        scale = 1.8f
                         offsetX = 0f
                         offsetY = 0f
                     },
@@ -1450,10 +1450,10 @@ private fun CityGrid(
         columns = GridCells.Fixed(gridColumns),
         modifier = modifier
             .fillMaxSize()
-            .padding(2.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.5.dp),
-        verticalArrangement = Arrangement.spacedBy(0.5.dp),
-        contentPadding = PaddingValues(0.dp),
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(1.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+        contentPadding = PaddingValues(2.dp),
         userScrollEnabled = false // 禁用滚动，让市民和地图同步
     ) {
         items(gridColumns * gridRows, key = { it }) { index ->
