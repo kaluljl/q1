@@ -109,7 +109,7 @@ object CitizenTextGenerator {
     }
     
     /**
-     * 生成市民的日记
+     * 生成市民的日记（使用AI）
      */
     suspend fun generateDiary(
         citizen: Citizen,
@@ -117,9 +117,26 @@ object CitizenTextGenerator {
     ): String = withContext(Dispatchers.IO) {
         try {
             val prompt = buildDiaryPrompt(citizen, recentEvents)
-            // 暂时使用降级方案，未来可集成DeepSeek API
-            val response: String? = null
-            response ?: generateFallbackDiary(citizen)
+            
+            // 尝试使用DeepSeek API生成
+            val deepSeekClient = DeepSeekClient(apiKey = "") // 空API密钥会使用fallback
+            val response = deepSeekClient.generateCitizenDiary(
+                citizenName = citizen.name,
+                citizenAge = citizen.age,
+                citizenOccupation = citizen.occupation ?: "待业",
+                citizenHappiness = (citizen.happiness * 100).toInt(),
+                citizenHealth = (citizen.health * 100).toInt(),
+                citizenWealth = citizen.wealth,
+                maritalStatus = citizen.maritalStatus.getDisplayName(),
+                recentEvents = recentEvents
+            )
+            
+            // 如果AI响应为空或失败，使用fallback
+            if (response.isBlank()) {
+                generateFallbackDiary(citizen)
+            } else {
+                response
+            }
         } catch (e: Exception) {
             generateFallbackDiary(citizen)
         }

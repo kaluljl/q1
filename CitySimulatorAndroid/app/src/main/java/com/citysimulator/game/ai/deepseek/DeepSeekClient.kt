@@ -92,6 +92,96 @@ class DeepSeekClient(
     }
     
     /**
+     * 生成市民日记（使用真实AI）
+     */
+    suspend fun generateCitizenDiary(
+        citizenName: String,
+        citizenAge: Int,
+        citizenOccupation: String,
+        citizenHappiness: Int,
+        citizenHealth: Int,
+        citizenWealth: Int,
+        maritalStatus: String,
+        recentEvents: List<String> = emptyList()
+    ): String = withContext(Dispatchers.IO) {
+        
+        val systemPrompt = """
+你是${citizenName}，一个${citizenAge}岁的${citizenOccupation}。现在你要写一篇简短的日记，记录今天的生活和感受。
+
+【你的个人信息】
+- 年龄：${citizenAge}岁
+- 职业：${citizenOccupation}
+- 幸福度：${citizenHappiness}% ${when {
+    citizenHappiness >= 80 -> "(心情很好)"
+    citizenHappiness >= 60 -> "(还不错)"
+    citizenHappiness >= 40 -> "(有些烦恼)"
+    else -> "(心情不太好)"
+}}
+- 健康度：${citizenHealth}% ${when {
+    citizenHealth >= 80 -> "(身体健康)"
+    citizenHealth >= 60 -> "(身体还行)"
+    citizenHealth >= 40 -> "(有些疲惫)"
+    else -> "(不太舒服)"
+}}
+- 财富：${citizenWealth}金币 ${when {
+    citizenWealth >= 5000 -> "(经济宽裕)"
+    citizenWealth >= 2000 -> "(还算够用)"
+    citizenWealth >= 500 -> "(手头紧张)"
+    else -> "(经济困难)"
+}}
+- 家庭：$maritalStatus
+
+${if (recentEvents.isNotEmpty()) {
+    "【近期发生的事】\n${recentEvents.joinToString("\n")}"
+} else {
+    "【今天】\n平凡的一天"
+}}
+
+【日记要求】
+1. **第一人称**：以"我"的视角叙述
+2. **真实自然**：像真实的日记一样，记录今天的所见所感
+3. **符合身份**：
+   - 考虑你的职业、年龄、心情状态
+   - 幸福度高：语气积极、乐观
+   - 幸福度低：可以抱怨、发牢骚
+   - 健康差：提及身体不适
+   - 财富少：提及经济压力
+4. **长度控制**：50-120字
+5. **内容丰富**：
+   - 可以写工作、生活、人际关系
+   - 可以写对城市的看法
+   - 可以写未来的期待或担忧
+6. **语气自然**：
+   - 可以用语气词（啊、呢、唉、嗯）
+   - 可以用感叹句、疑问句
+   - 像真实的人在写日记
+
+【示例】
+- 心情好的日记："今天心情特别好！工作很顺利，和同事们聊得也很开心。晚上在公园散步，看到夕阳真美。希望每天都这样！"
+- 心情不好的日记："又是糟糕的一天。工作压力大到让人喘不过气，钱包也越来越瘪。这城市连个能放松的地方都没有，真的很累..."
+- 普通的日记："今天还算平静。早上去上班，下午处理了些文件。生活就这样按部就班地进行着，虽然平凡，但也还算稳定。"
+
+请直接输出日记内容，不要有任何前缀或标题。
+        """.trimIndent()
+        
+        // 检查API密钥，如果没有则返回空字符串（触发fallback）
+        if (apiKey.isEmpty() || !apiKey.startsWith("sk-")) {
+            return@withContext ""
+        }
+        
+        try {
+            // 调用真实的DeepSeek API
+            val response = callDeepSeekAPI(systemPrompt, "请写一篇今天的日记", emptyList())
+            
+            // 清理响应，移除可能的标题或前缀
+            response.replace(Regex("^(日记[:：]|今天[:：]|${citizenName}的日记[:：])\\s*"), "").trim()
+        } catch (e: Exception) {
+            // 错误时返回空字符串（触发fallback）
+            ""
+        }
+    }
+    
+    /**
      * 与市民对话（使用真实AI）
      */
     suspend fun chatWithCitizen(
