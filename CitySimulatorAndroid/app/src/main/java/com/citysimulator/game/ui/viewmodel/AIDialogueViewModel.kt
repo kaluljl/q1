@@ -27,7 +27,8 @@ class AIDialogueViewModel @Inject constructor(
     private val deepSeekClient: DeepSeekClient,
     private val cityRepository: CityRepository,
     private val buildingRepository: BuildingRepository,
-    private val resourceRepository: ResourceRepository
+    private val resourceRepository: ResourceRepository,
+    private val citizenViewModel: CitizenViewModel
 ) : ViewModel() {
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -93,15 +94,86 @@ class AIDialogueViewModel @Inject constructor(
                     }
                 }
                 
-                // 构建城市环境描述
+                // 获取市民的深度AI数据
+                val personality = citizenViewModel.getOrGeneratePersonality(citizen.id)
+                val needs = citizenViewModel.getOrGenerateNeeds(citizen.id, citizen)
+                val memories = citizenViewModel.getOrGenerateMemories(citizen.id, citizen)
+                val socialNetwork = citizenViewModel.getOrGenerateSocialNetwork(citizen.id)
+                val gossips = citizenViewModel.getCitizenGossips(citizen.id, city?.happiness ?: 0.6f)
+                val events = citizenViewModel.getCitizenEvents(citizen.id, city?.happiness ?: 0.6f)
+                val citizenTrust = citizenViewModel.getCitizenTrust(citizen.id)
+                
+                // 构建完整的对话上下文（包含城市+市民深度信息）
                 val cityContext = buildString {
                     append("【城市概况】\n")
                     append("城市名称: ${city?.name ?: "未知"}\n")
                     append("人口: ${city?.population ?: 0}人\n")
                     append("金币: ${goldResource?.amount?.toInt() ?: 0}\n")
                     append("建筑总数: ${buildings.size}座\n")
-                    append("\n【建筑详情】\n")
-                    append(buildingDetails)
+                    append("建筑详情: $buildingDetails\n")
+                    
+                    append("\n【你的人格特质】\n")
+                    append("主导人格: ${personality.getDominantPersonalityType().getDisplayName()}\n")
+                    append("外向性: ${(personality.extraversion * 100).toInt()}% ")
+                    append("(${if (personality.isExtroverted()) "外向" else if (personality.isIntroverted()) "内向" else "均衡"})\n")
+                    append("勤奋度: ${(personality.diligence * 100).toInt()}% ")
+                    append("(${if (personality.isDiligent()) "勤奋" else if (personality.isLazy()) "懒散" else "均衡"})\n")
+                    append("好奇心: ${(personality.curiosity * 100).toInt()}% ")
+                    append("(${if (personality.isCurious()) "好奇" else if (personality.isConservative()) "保守" else "均衡"})\n")
+                    
+                    append("\n【你的需求状态】\n")
+                    append("总体满足度: ${(needs.getOverallSatisfaction() * 100).toInt()}%\n")
+                    append("最紧迫需求: ${needs.getMostUrgentNeed().getDisplayName()}\n")
+                    append("生理需求: ${(needs.physiological.getAverage() * 100).toInt()}%\n")
+                    append("安全需求: ${(needs.safety.getAverage() * 100).toInt()}%\n")
+                    append("社交需求: ${(needs.social.getAverage() * 100).toInt()}%\n")
+                    
+                    append("\n【你的重要记忆】\n")
+                    if (memories.isNotEmpty()) {
+                        memories.take(3).forEach { memory ->
+                            append("- ${memory.description} (${memory.importance.getDisplayName()})\n")
+                        }
+                    } else {
+                        append("- 暂无特殊记忆\n")
+                    }
+                    
+                    append("\n【你的社交关系】\n")
+                    if (socialNetwork.isNotEmpty()) {
+                        val relationshipSummary = socialNetwork.groupBy { it.type }
+                        relationshipSummary.forEach { (type, relations) ->
+                            append("- ${type.getDisplayName()}: ${relations.size}人\n")
+                        }
+                    } else {
+                        append("- 暂无社交关系\n")
+                    }
+                    
+                    append("\n【最近听到的八卦】\n")
+                    if (gossips.isNotEmpty()) {
+                        gossips.take(2).forEach { gossip ->
+                            append("- ${gossip.content} (${gossip.sentiment.getDisplayName()})\n")
+                        }
+                    } else {
+                        append("- 暂无八卦\n")
+                    }
+                    
+                    append("\n【最近的城市事件】\n")
+                    if (events.isNotEmpty()) {
+                        events.take(2).forEach { event ->
+                            append("- ${event.title}: ${event.description}\n")
+                        }
+                    } else {
+                        append("- 暂无特殊事件\n")
+                    }
+                    
+                    append("\n【对市长的信任度】\n")
+                    append("信任度: ${(citizenTrust * 100).toInt()}% ")
+                    append(when {
+                        citizenTrust >= 0.8f -> "(非常信任)"
+                        citizenTrust >= 0.6f -> "(比较信任)"
+                        citizenTrust >= 0.4f -> "(一般)"
+                        citizenTrust >= 0.2f -> "(不太信任)"
+                        else -> "(很不信任)"
+                    })
                 }
                 
                 // 调试：打印发送给AI的城市环境信息
