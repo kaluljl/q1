@@ -183,9 +183,6 @@ fun CitySimulatorNavigation(
                 onNavigateToCitizenAIChat = { citizenId ->
                     navController.navigate("citizen_ai_chat/$citizenId")
                 },
-                onNavigateToThemeSelector = {
-                    navController.navigate(CitySimulatorRoutes.THEME_SELECTOR)
-                },
                 onNavigateToSettings = {
                     navController.navigate(CitySimulatorRoutes.SETTINGS)
                 }
@@ -279,9 +276,6 @@ fun CitySimulatorNavigation(
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                },
-                onNavigateToThemeSelector = {
-                    navController.navigate(CitySimulatorRoutes.THEME_SELECTOR)
                 }
             )
         }

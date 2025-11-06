@@ -76,7 +76,6 @@ fun MainGameScreen(
     onNavigateToEconomy: (() -> Unit)? = null,
     onNavigateToCitizenList: (() -> Unit)? = null,
     onNavigateToCitizenAIChat: ((String) -> Unit)? = null, // 新增：导航到AI对话
-    onNavigateToThemeSelector: (() -> Unit)? = null, // 新增：导航到主题选择
     onNavigateToSettings: (() -> Unit)? = null, // 新增：导航到设置
     viewModel: MainGameViewModel = hiltViewModel(),
     supabaseViewModel: SupabaseGameViewModel = hiltViewModel(),
@@ -871,7 +870,6 @@ fun MainGameScreen(
             onPolicyClick = onNavigateToCityPolicy,
             onEconomyClick = onNavigateToEconomy,
             onCitizenListClick = onNavigateToCitizenList,
-            onThemeClick = onNavigateToThemeSelector,
             modifier = Modifier.fillMaxWidth()
         )
     }

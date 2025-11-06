@@ -25,7 +25,6 @@ fun ModernBottomBar(
     onPolicyClick: () -> Unit,
     onEconomyClick: (() -> Unit)? = null,
     onCitizenListClick: (() -> Unit)? = null,
-    onThemeClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
@@ -95,17 +94,6 @@ fun ModernBottomBar(
                 icon = "👥",
                 label = "市民",
                 onClick = onCitizenListClick,
-                hasNotification = false,
-                themeColors = currentTheme
-            )
-        }
-        
-        // 主题选择按钮（可选）
-        if (onThemeClick != null) {
-            BottomBarButton(
-                icon = "🎨",
-                label = "主题",
-                onClick = onThemeClick,
                 hasNotification = false,
                 themeColors = currentTheme
             )
