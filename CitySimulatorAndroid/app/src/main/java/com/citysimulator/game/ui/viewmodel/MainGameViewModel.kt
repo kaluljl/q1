@@ -44,7 +44,11 @@ class MainGameViewModel @Inject constructor(
         val resources: List<Resource> = emptyList(),
         val population: List<Population> = emptyList(),
         val isLoading: Boolean = true,
-        val error: String? = null
+        val error: String? = null,
+        val currentDistrict: CityDistrict = CityDistrict.DOWNTOWN, // 当前所在区域
+        val districts: Map<CityDistrict, DistrictData> = CityDistrict.values().associate {
+            it to DistrictData(it)
+        } // 所有区域数据
     )
     
     // UI状态
@@ -371,5 +375,69 @@ class MainGameViewModel @Inject constructor(
      */
     fun refreshData() {
         loadGameData()
+    }
+    
+    /**
+     * 切换到指定区域
+     */
+    fun switchDistrict(district: CityDistrict) {
+        val currentDistricts = _uiState.value.districts.toMutableMap()
+        
+        // 保存当前区域的建筑列表
+        val currentDistrict = _uiState.value.currentDistrict
+        val currentDistrictData = currentDistricts[currentDistrict]?.copy(
+            buildings = _uiState.value.buildings.toMutableList()
+        )
+        if (currentDistrictData != null) {
+            currentDistricts[currentDistrict] = currentDistrictData
+        }
+        
+        // 切换到新区域
+        val newDistrictData = currentDistricts[district]
+        _uiState.value = _uiState.value.copy(
+            currentDistrict = district,
+            buildings = newDistrictData?.buildings?.toList() ?: emptyList(),
+            districts = currentDistricts
+        )
+        
+        println("🗺️ 切换到区域: ${district.displayName}, 建筑数量: ${newDistrictData?.buildings?.size ?: 0}")
+    }
+    
+    /**
+     * 在当前区域添加建筑
+     */
+    fun addBuildingToCurrentDistrict(building: Building) {
+        val currentDistrict = _uiState.value.currentDistrict
+        val currentDistricts = _uiState.value.districts.toMutableMap()
+        val districtData = currentDistricts[currentDistrict]
+        
+        if (districtData != null) {
+            districtData.buildings.add(building)
+            currentDistricts[currentDistrict] = districtData
+            
+            _uiState.value = _uiState.value.copy(
+                buildings = districtData.buildings.toList(),
+                districts = currentDistricts
+            )
+        }
+    }
+    
+    /**
+     * 从当前区域删除建筑
+     */
+    fun removeBuildingFromCurrentDistrict(building: Building) {
+        val currentDistrict = _uiState.value.currentDistrict
+        val currentDistricts = _uiState.value.districts.toMutableMap()
+        val districtData = currentDistricts[currentDistrict]
+        
+        if (districtData != null) {
+            districtData.buildings.removeAll { it.id == building.id }
+            currentDistricts[currentDistrict] = districtData
+            
+            _uiState.value = _uiState.value.copy(
+                buildings = districtData.buildings.toList(),
+                districts = currentDistricts
+            )
+        }
     }
 }

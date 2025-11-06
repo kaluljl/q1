@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun ModernBottomBar(
+    currentDistrict: com.citysimulator.game.data.model.CityDistrict = com.citysimulator.game.data.model.CityDistrict.DOWNTOWN,
+    onDistrictChange: (com.citysimulator.game.data.model.CityDistrict) -> Unit = {},
     onBuildingClick: () -> Unit,
     onTaskClick: () -> Unit,
     onCitizenClick: () -> Unit,
@@ -29,73 +31,118 @@ fun ModernBottomBar(
 ) {
     val currentTheme = com.citysimulator.game.ui.theme.ThemeManager.getCurrentTheme()
     
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.horizontalGradient(
-                    colors = currentTheme.backgroundGradient
+    Column(modifier = modifier.fillMaxWidth()) {
+        // 区域切换栏
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF1A237E).copy(alpha = 0.9f),
+                            Color(0xFF283593).copy(alpha = 0.9f)
+                        )
+                    )
                 )
-            )
-            .padding(vertical = 8.dp, horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 建筑按钮
-        BottomBarButton(
-            icon = "🏗️",
-            label = "建筑",
-            onClick = onBuildingClick,
-            hasNotification = false,
-            themeColors = currentTheme
-        )
+                .padding(vertical = 6.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            com.citysimulator.game.data.model.CityDistrict.values().forEach { district ->
+                DistrictButton(
+                    district = district,
+                    isSelected = district == currentDistrict,
+                    onClick = { 
+                        com.citysimulator.game.audio.SoundManager.playSound(com.citysimulator.game.audio.SoundType.BUTTON_CLICK)
+                        onDistrictChange(district) 
+                    }
+                )
+            }
+        }
         
-        // 任务按钮
-        BottomBarButton(
-            icon = "📋",
-            label = "任务",
-            onClick = onTaskClick,
-            hasNotification = false,
-            themeColors = currentTheme
-        )
-        
-        // 心声按钮
-        BottomBarButton(
-            icon = "💭",
-            label = "心声",
-            onClick = onCitizenClick,
-            hasNotification = false,
-            themeColors = currentTheme
-        )
-        
-        // 政策按钮
-        BottomBarButton(
-            icon = "📜",
-            label = "政策",
-            onClick = onPolicyClick,
-            hasNotification = false,
-            themeColors = currentTheme
-        )
-        
-        // 经济按钮（可选）
-        if (onEconomyClick != null) {
+        // 功能按钮栏
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = currentTheme.backgroundGradient
+                    )
+                )
+                .padding(vertical = 8.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 建筑按钮
             BottomBarButton(
-                icon = "💰",
-                label = "经济",
-                onClick = onEconomyClick,
+                icon = "🏗️",
+                label = "建筑",
+                onClick = onBuildingClick,
+                hasNotification = false,
+                themeColors = currentTheme
+            )
+            
+            // 任务按钮
+            BottomBarButton(
+                icon = "📋",
+                label = "任务",
+                onClick = onTaskClick,
+                hasNotification = false,
+                themeColors = currentTheme
+            )
+            
+            // 心声按钮
+            BottomBarButton(
+                icon = "💭",
+                label = "心声",
+                onClick = onCitizenClick,
+                hasNotification = false,
+                themeColors = currentTheme
+            )
+            
+            // 政策按钮
+            BottomBarButton(
+                icon = "📜",
+                label = "政策",
+                onClick = onPolicyClick,
                 hasNotification = false,
                 themeColors = currentTheme
             )
         }
-        
-        // 市民列表按钮（可选）
-        if (onCitizenListClick != null) {
-            BottomBarButton(
-                icon = "👥",
-                label = "市民",
-                onClick = onCitizenListClick,
-                hasNotification = false,
-                themeColors = currentTheme
+    }
+}
+
+@Composable
+private fun DistrictButton(
+    district: com.citysimulator.game.data.model.CityDistrict,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) district.getThemeColor().copy(alpha = 0.3f) 
+                else Color.Transparent
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = district.icon,
+                fontSize = 20.sp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = district.displayName,
+                fontSize = 10.sp,
+                color = if (isSelected) district.getThemeColor() else Color.White.copy(alpha = 0.7f),
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
         }
     }

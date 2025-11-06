@@ -184,6 +184,7 @@ fun MainGameScreen(
     // 从 ViewModel 加载建筑数据（从本地数据库持久化存储）
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var buildings by remember { mutableStateOf(uiState.buildings) }
+    val currentDistrict = uiState.currentDistrict
     
     // 监听 ViewModel 的建筑数据变化
     LaunchedEffect(uiState.buildings) {
@@ -515,6 +516,49 @@ fun MainGameScreen(
             onSettingsClick = onNavigateToSettings, // 设置按钮点击
             modifier = Modifier.fillMaxWidth()
         )
+        
+        // 区域名称显示
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = currentDistrict.getThemeColor().copy(alpha = 0.15f)
+            ),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = currentDistrict.icon,
+                    fontSize = 24.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = currentDistrict.displayName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = currentDistrict.getThemeColor()
+                    )
+                    Text(
+                        text = currentDistrict.description,
+                        fontSize = 12.sp,
+                        color = currentTheme.textSecondary
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "${buildings.size} 座建筑",
+                    fontSize = 12.sp,
+                    color = currentTheme.textSecondary
+                )
+            }
+        }
         
         // 公用事业状态栏（更紧凑的设计）
         if (utilityStatus != null && utilityImpact != null) {
@@ -864,6 +908,10 @@ fun MainGameScreen(
         
         // 现代化底部控制栏（移除上方间距）
         ModernBottomBar(
+            currentDistrict = currentDistrict,
+            onDistrictChange = { district ->
+                viewModel.switchDistrict(district)
+            },
             onBuildingClick = onNavigateToBuildingMenu,
             onTaskClick = onNavigateToTaskPanel,
             onCitizenClick = onNavigateToCitizenFeedback,
