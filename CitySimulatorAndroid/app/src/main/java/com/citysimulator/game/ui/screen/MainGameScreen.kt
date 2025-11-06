@@ -190,20 +190,29 @@ fun MainGameScreen(
     LaunchedEffect(uiState.currentDistrict, uiState.buildings) {
         buildings = uiState.buildings
         println("🗺️ 区域切换或建筑变化: ${uiState.currentDistrict.displayName}, 建筑数量: ${buildings.size}")
-        
-        // 为已有建筑初始化市民
-        if (buildings.isNotEmpty()) {
-            println("🔧 准备初始化市民，当前建筑列表: ${buildings.map { "${it.getDisplayName()}(${it.position.x},${it.position.y})" }}")
-            citizenViewModel.initializeCitizens(buildings)
+    }
+    
+    // 获取所有区域的建筑总数（用于市民初始化）
+    val allDistrictsBuildings = remember(uiState.districts) {
+        uiState.districts.values.flatMap { it.buildings }
+    }
+    
+    // 只在首次加载或总建筑数变化时初始化市民（不受区域切换影响）
+    var lastTotalBuildingCount by remember { mutableStateOf(0) }
+    LaunchedEffect(allDistrictsBuildings.size) {
+        if (allDistrictsBuildings.size != lastTotalBuildingCount && allDistrictsBuildings.isNotEmpty()) {
+            println("🔧 总建筑数变化: $lastTotalBuildingCount -> ${allDistrictsBuildings.size}，初始化市民")
+            citizenViewModel.initializeCitizens(allDistrictsBuildings)
+            lastTotalBuildingCount = allDistrictsBuildings.size
         }
     }
     
     // 如果没有建筑但需要测试市民，手动添加一些测试市民
     var hasInitializedTestCitizens by remember { mutableStateOf(false) }
-    LaunchedEffect(citizens.size, buildings.size) {
-        if (!hasInitializedTestCitizens && citizens.isEmpty() && buildings.isNotEmpty()) {
+    LaunchedEffect(citizens.size, allDistrictsBuildings.size) {
+        if (!hasInitializedTestCitizens && citizens.isEmpty() && allDistrictsBuildings.isNotEmpty()) {
             println("⚠️ 发现有建筑但没有市民，重新初始化...")
-            citizenViewModel.initializeCitizens(buildings)
+            citizenViewModel.initializeCitizens(allDistrictsBuildings)
             hasInitializedTestCitizens = true
         }
         if (citizens.isNotEmpty()) {
