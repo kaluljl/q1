@@ -70,18 +70,62 @@ class CitizenFeedbackViewModel @Inject constructor(
                 // 计算当前游戏月份ID（年*12 + 月）
                 val currentMonthId = gameYear * 12 + gameMonth
                 
-                // 首次初始化：将当前月份设为上次生成月份，不生成心声（仅一次，且持久化）
+                // 首次初始化：生成初始心声，然后设置为已初始化
                 if (!isInitialized) {
+                    println("📅 心声系统首次初始化：${gameYear}年${gameMonth}月，生成初始心声...")
+                    
+                    // 如果人口为0，不生成心声
+                    if (population == 0) {
+                        println("📅 城市尚无居民，跳过初始心声生成")
+                        _lastGenerationMonth.value = currentMonthId
+                        savedStateHandle["last_generation_month"] = currentMonthId
+                        isInitialized = true
+                        return@launch
+                    }
+                    
+                    // 生成初始心声
+                    _isLoading.value = true
+                    val initialFeedbacks = IntelligentFeedbackGenerator.generateFeedbackBasedOnCity(
+                        buildings = buildings,
+                        resources = resources,
+                        goldAmount = goldAmount,
+                        population = population,
+                        gameTime = gameTime
+                    ).take(MAX_NEW_FEEDBACKS_PER_UPDATE).map { feedbackData ->
+                        CitizenFeedback(
+                            id = feedbackData.id,
+                            type = feedbackData.category,
+                            message = feedbackData.content,
+                            priority = when (feedbackData.urgency) {
+                                com.citysimulator.game.ai.FeedbackUrgency.LOW -> 1
+                                com.citysimulator.game.ai.FeedbackUrgency.MEDIUM -> 3
+                                com.citysimulator.game.ai.FeedbackUrgency.HIGH -> 4
+                                com.citysimulator.game.ai.FeedbackUrgency.CRITICAL -> 5
+                            },
+                            source = FeedbackSource.CITIZEN,
+                            createdAt = feedbackData.createdAt,
+                            isResolved = feedbackData.isResolved,
+                            resolvedAt = feedbackData.resolvedAt
+                        )
+                    }
+                    
+                    _feedbacks.value = initialFeedbacks
                     _lastGenerationMonth.value = currentMonthId
                     savedStateHandle["last_generation_month"] = currentMonthId
                     isInitialized = true
-                    println("📅 心声系统已初始化：${gameYear}年${gameMonth}月（下个月开始生成心声）")
+                    _isLoading.value = false
+                    
+                    println("💬 首次初始化生成了 ${initialFeedbacks.size} 条初始心声")
                     return@launch
                 }
                 
                 // 检查是否是新的月份
                 if (currentMonthId <= _lastGenerationMonth.value) {
                     // 还在同一个月，不生成新反馈
+                    // 每10次调用输出一次日志（避免日志刷屏）
+                    if (currentMonthId % 10 == 0) {
+                        println("📅 当前月份 ${gameYear}年${gameMonth}月 (ID:$currentMonthId)，上次生成月份 ID:${_lastGenerationMonth.value}，无需生成新心声")
+                    }
                     return@launch
                 }
                 
