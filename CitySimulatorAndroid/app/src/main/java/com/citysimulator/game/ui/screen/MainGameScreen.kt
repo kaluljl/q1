@@ -186,13 +186,13 @@ fun MainGameScreen(
     var buildings by remember { mutableStateOf(uiState.buildings) }
     val currentDistrict = uiState.currentDistrict
     
-    // 监听 ViewModel 的建筑数据变化
-    LaunchedEffect(uiState.buildings) {
-        if (uiState.buildings.isNotEmpty() && buildings.isEmpty()) {
-            buildings = uiState.buildings
-            println("📦 从 ViewModel 加载了 ${buildings.size} 座建筑")
-            
-            // 为已有建筑初始化市民
+    // 监听区域切换和建筑数据变化
+    LaunchedEffect(uiState.currentDistrict, uiState.buildings) {
+        buildings = uiState.buildings
+        println("🗺️ 区域切换或建筑变化: ${uiState.currentDistrict.displayName}, 建筑数量: ${buildings.size}")
+        
+        // 为已有建筑初始化市民
+        if (buildings.isNotEmpty()) {
             println("🔧 准备初始化市民，当前建筑列表: ${buildings.map { "${it.getDisplayName()}(${it.position.x},${it.position.y})" }}")
             citizenViewModel.initializeCitizens(buildings)
         }
@@ -792,8 +792,9 @@ fun MainGameScreen(
                                 )
                                 
                                 
-                                // 添加到建筑列表
+                                // 添加到当前区域的建筑列表
                                 buildings = buildings + newBuilding
+                                viewModel.addBuildingToCurrentDistrict(newBuilding)
                                 
                                 // 保存到本地数据库（让AI能看到新建筑）
                                 viewModel.addBuilding(newBuilding)
@@ -966,8 +967,9 @@ fun MainGameScreen(
                                 println("✅ 拆除建筑后人口已更新: $totalCitizens")
                             }
                             
-                            // 从建筑列表中移除
+                            // 从当前区域建筑列表中移除
                             buildings = buildings.filter { it.id != building.id }
+                            viewModel.removeBuildingFromCurrentDistrict(building)
                             
                             // 从本地数据库删除（让AI能知道建筑被拆除）
                             viewModel.deleteBuilding(building.id)
@@ -1064,6 +1066,7 @@ fun MainGameScreen(
                             if (goldAmount >= buildingCost) {
                                 goldAmount -= buildingCost
                                 buildings = buildings + newBuilding
+                                viewModel.addBuildingToCurrentDistrict(newBuilding)
                                 
                                 // 保存到本地数据库（让AI能看到新建筑）
                                 viewModel.addBuilding(newBuilding)
