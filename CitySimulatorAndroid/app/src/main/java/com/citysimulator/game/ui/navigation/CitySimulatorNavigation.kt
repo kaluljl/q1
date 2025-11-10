@@ -387,7 +387,9 @@ fun CitySimulatorNavigation(
                     safePopBackStack()
                 },
                 onResolveFeedback = { feedbackId ->
-                    feedbackViewModel.resolveFeedback(feedbackId, gameTimeString)
+                    val currentGameTime = gameTimeString // 使用当前游戏时间
+                    feedbackViewModel.resolveFeedback(feedbackId, currentGameTime)
+                    println("✅ 调用resolveFeedback: id=$feedbackId, time=$currentGameTime")
                 },
                 onDeleteFeedback = { feedbackId ->
                     feedbackViewModel.deleteFeedback(feedbackId)

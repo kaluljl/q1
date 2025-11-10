@@ -2,11 +2,12 @@ package com.citysimulator.game.ai.deepseek
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.concurrent.TimeUnit
 
 /**
@@ -171,7 +172,7 @@ ${if (recentEvents.isNotEmpty()) {
         
         try {
             // 调用真实的DeepSeek API
-            val response = callDeepSeekAPI(systemPrompt, "请写一篇今天的日记", emptyList())
+            val response = callRealDeepSeekAPI(systemPrompt, "请写一篇今天的日记", temperature = 0.8f, maxTokens = 150)
             
             // 清理响应，移除可能的标题或前缀
             response.replace(Regex("^(日记[:：]|今天[:：]|${citizenName}的日记[:：])\\s*"), "").trim()
@@ -274,7 +275,7 @@ $cityContext
         } else {
             try {
                 // 调用真实的DeepSeek API
-                val response = callDeepSeekAPI(systemPrompt, playerMessage, conversationHistory)
+                val response = callRealDeepSeekAPI(systemPrompt, playerMessage, temperature = 0.95f, maxTokens = 200)
                 
                 // 如果API调用失败，回退到模拟响应
                 if (response.isEmpty()) {
@@ -295,97 +296,6 @@ $cityContext
         }
     }
     
-    /**
-     * 调用DeepSeek API
-     */
-    private suspend fun callDeepSeekAPI(
-        systemPrompt: String,
-        userMessage: String,
-        conversationHistory: List<String> = emptyList()
-    ): String = withContext(Dispatchers.IO) {
-        try {
-            val url = URL("$baseUrl/chat/completions")
-            val connection = url.openConnection() as HttpURLConnection
-            
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.setRequestProperty("Authorization", "Bearer $apiKey")
-            connection.doOutput = true
-            connection.connectTimeout = 10000
-            connection.readTimeout = 30000
-            
-            // 构建消息数组
-            val messages = JSONArray()
-            
-            // 系统提示
-            messages.put(JSONObject().apply {
-                put("role", "system")
-                put("content", systemPrompt)
-            })
-            
-            // 对话历史（最近5轮，保留更多上下文）
-            conversationHistory.takeLast(10).forEachIndexed { index, msg ->
-                messages.put(JSONObject().apply {
-                    put("role", if (index % 2 == 0) "user" else "assistant")
-                    put("content", msg)
-                })
-            }
-            
-            // 当前用户消息
-            messages.put(JSONObject().apply {
-                put("role", "user")
-                put("content", userMessage)
-            })
-            
-            // 构建请求体
-            val requestBody = JSONObject().apply {
-                put("model", "deepseek-chat")
-                put("messages", messages)
-                put("temperature", 0.95) // 提高创造性，让对话更灵活多样
-                put("max_tokens", 200) // 增加回复长度上限
-                put("top_p", 0.9) // 添加nucleus sampling，增加多样性
-                put("frequency_penalty", 0.3) // 减少重复用词
-                put("presence_penalty", 0.2) // 鼓励谈论新话题
-            }
-            
-            // 发送请求
-            val writer = OutputStreamWriter(connection.outputStream)
-            writer.write(requestBody.toString())
-            writer.flush()
-            writer.close()
-            
-            // 读取响应
-            val responseCode = connection.responseCode
-            
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val jsonResponse = JSONObject(response)
-                
-                // 解析AI回复
-                val choices = jsonResponse.getJSONArray("choices")
-                if (choices.length() > 0) {
-                    val firstChoice = choices.getJSONObject(0)
-                    val message = firstChoice.getJSONObject("message")
-                    val content = message.getString("content")
-                    return@withContext content.trim()
-                }
-            } else {
-                // API调用失败，记录错误
-                val errorStream = connection.errorStream
-                if (errorStream != null) {
-                    val error = errorStream.bufferedReader().use { it.readText() }
-                    println("DeepSeek API Error: $error")
-                }
-            }
-            
-            connection.disconnect()
-            ""
-        } catch (e: Exception) {
-            println("DeepSeek API Exception: ${e.message}")
-            e.printStackTrace()
-            ""
-        }
-    }
     
     /**
      * 生成市民响应（模拟真实AI对话）
@@ -667,7 +577,171 @@ $cityContext
                 💡 **预算分析**：当前预算充足，建议按优先级逐步建造。
             """.trimIndent()
             
+            "citizen_feedback" -> {
+                // 根据提示词中的城市状况生成不同的心声
+                val feedbackOptions = listOf(
+                    "希望能多建几座公园，周末都没地方遛弯。",
+                    "最近电力供应不太稳定，经常停电。",
+                    "城市发展得不错，就是房价有点高。",
+                    "我们需要一家医院，看病太不方便了。",
+                    "希望能有更多的商店，买东西方便点。",
+                    "建议增加一些娱乐设施，生活太枯燥了。",
+                    "工厂太多了，空气质量有点差。",
+                    "交通有点拥堵，希望能改善一下。",
+                    "学校不够，孩子上学都要走很远。",
+                    "垃圾处理不及时，环境卫生需要改善。",
+                    "希望能建个图书馆，丰富文化生活。",
+                    "公共交通太少，出行不方便。",
+                    "住房紧张，年轻人买不起房子。",
+                    "就业机会少，希望能多引进一些企业。",
+                    "生活成本有点高，压力很大。",
+                    "城市绿化做得不错，环境很好。",
+                    "治安很好，住得很安心。",
+                    "市政服务效率高，办事很方便。",
+                    "社区活动丰富，邻里关系和睦。",
+                    "城市规划合理，生活很便利。"
+                )
+                feedbackOptions.random()
+            }
+            
             else -> "AI助手正在思考中..."
+        }
+    }
+    
+    /**
+     * 调用真实的DeepSeek API
+     * @param systemPrompt 系统提示词
+     * @param userMessage 用户消息
+     * @param temperature 温度参数（0-2，越高越随机）
+     * @param maxTokens 最大token数
+     * @return AI响应内容
+     */
+    private suspend fun callRealDeepSeekAPI(
+        systemPrompt: String,
+        userMessage: String,
+        temperature: Float = 0.7f,
+        maxTokens: Int = 500
+    ): String = withContext(Dispatchers.IO) {
+        // 检查API密钥
+        if (apiKey.isEmpty() || apiKey == "your-api-key-here" || !apiKey.startsWith("sk-")) {
+            throw Exception("Invalid API key")
+        }
+        
+        try {
+            val client = OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+            
+            // 构建请求体
+            val jsonBody = JSONObject().apply {
+                put("model", "deepseek-chat")
+                put("messages", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("role", "system")
+                        put("content", systemPrompt)
+                    })
+                    put(JSONObject().apply {
+                        put("role", "user")
+                        put("content", userMessage)
+                    })
+                })
+                put("temperature", temperature)
+                put("max_tokens", maxTokens)
+                put("stream", false)
+            }
+            
+            val requestBody = jsonBody.toString()
+                .toRequestBody("application/json; charset=utf-8".toMediaType())
+            
+            val request = Request.Builder()
+                .url("$baseUrl/chat/completions")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Content-Type", "application/json")
+                .post(requestBody)
+                .build()
+            
+            // 发送请求
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: throw Exception("Empty response")
+            
+            if (!response.isSuccessful) {
+                println("❌ DeepSeek API错误: ${response.code} - $responseBody")
+                throw Exception("API request failed: ${response.code}")
+            }
+            
+            // 解析响应
+            val jsonResponse = JSONObject(responseBody as String)
+            val content = jsonResponse
+                .getJSONArray("choices")
+                .getJSONObject(0)
+                .getJSONObject("message")
+                .getString("content")
+            
+            println("✅ DeepSeek API成功调用")
+            content.trim()
+            
+        } catch (e: Exception) {
+            println("❌ DeepSeek API调用失败: ${e.message}")
+            throw e
+        }
+    }
+    
+    /**
+     * 生成市民心声反馈
+     * 
+     * @param cityStatus 城市当前状态描述
+     * @return AI生成的市民心声内容
+     */
+    suspend fun generateCitizenFeedback(cityStatus: String): String = withContext(Dispatchers.IO) {
+        val prompt = """
+你是一位生活在这座城市的普通市民。请根据城市当前状况，以第一人称表达你对城市的看法和建议。
+
+城市当前状况：
+$cityStatus
+
+要求：
+1. 以第一人称口吻（"我"、"我们"）
+2. 语气要真实自然，像普通市民说话
+3. 只说一件具体的事情或问题
+4. 长度控制在30字以内
+5. 可以是抱怨、建议、表扬或期待
+6. 不要说"作为市民"、"我认为"等啰嗦的开头
+7. 直接说问题或感受
+
+示例风格（仅供参考，不要照抄）：
+- "希望能多建几座公园，周末都没地方遛弯。"
+- "最近电力供应不太稳定，经常停电。"
+- "城市发展得不错，就是房价有点高。"
+- "我们需要一家医院，看病太不方便了。"
+
+请生成一条市民心声：
+        """.trimIndent()
+        
+        try {
+            // 尝试调用真实DeepSeek API
+            if (apiKey.isNotEmpty() && apiKey != "your-api-key-here" && apiKey.startsWith("sk-")) {
+                println("🤖 尝试调用真实DeepSeek API...")
+                val response = callRealDeepSeekAPI(
+                    systemPrompt = "你是一位普通市民，用简短、真实、口语化的方式表达对城市的看法。",
+                    userMessage = prompt,
+                    temperature = 0.9f,
+                    maxTokens = 100
+                )
+                return@withContext response.trim().removeSurrounding("\"", "\"").trim()
+            } else {
+                println("⚠️ 未配置API密钥，使用模拟响应")
+                // 使用模拟响应生成心声
+                val response = generateMockResponse("citizen_feedback", prompt)
+                // 清理可能的引号和多余空格
+                return@withContext response.trim().removeSurrounding("\"", "\"").trim()
+            }
+        } catch (e: Exception) {
+            println("❌ DeepSeek API失败，降级到模拟响应: ${e.message}")
+            // API失败时使用模拟响应作为fallback
+            val response = generateMockResponse("citizen_feedback", prompt)
+            return@withContext response.trim().removeSurrounding("\"", "\"").trim()
         }
     }
 }

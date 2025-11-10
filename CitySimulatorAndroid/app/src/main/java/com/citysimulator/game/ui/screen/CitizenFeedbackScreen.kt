@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.citysimulator.game.data.model.FeedbackType
 import com.citysimulator.game.data.model.CitizenFeedback
+import com.citysimulator.game.ai.CitizenFeedbackData
+import com.citysimulator.game.ai.FeedbackUrgency
 import com.citysimulator.game.ui.theme.*
 
 /**
@@ -30,10 +32,10 @@ import com.citysimulator.game.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CitizenFeedbackScreen(
-    feedbacks: List<CitizenFeedback>,
+    feedbacks: List<CitizenFeedbackData>,
     isLoading: Boolean = false,
     onNavigateBack: () -> Unit,
-    onResolveFeedback: (String) -> Unit = {},
+    onResolveFeedback: (String) -> Unit = {}, // 只需要 feedbackId，gameTime在ViewModel中已经处理
     onDeleteFeedback: (String) -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
@@ -100,21 +102,24 @@ fun CitizenFeedbackScreen(
             ) {
                 FeedbackStatItem(
                     icon = Icons.Default.Warning,
-                    count = feedbacks.count { it.priority >= 4 },
+                    count = feedbacks.count { 
+                        it.urgency == FeedbackUrgency.HIGH || 
+                        it.urgency == FeedbackUrgency.CRITICAL 
+                    },
                     label = "紧急",
                     color = Color.Red
                 )
                 
                 FeedbackStatItem(
                     icon = Icons.Default.Info,
-                    count = feedbacks.count { it.priority == 2 || it.priority == 3 },
+                    count = feedbacks.count { it.urgency == FeedbackUrgency.MEDIUM },
                     label = "一般",
                     color = Color.Blue
                 )
                 
                 FeedbackStatItem(
                     icon = Icons.Default.ThumbUp,
-                    count = feedbacks.count { it.priority == 1 },
+                    count = feedbacks.count { it.urgency == FeedbackUrgency.LOW },
                     label = "低优先级",
                     color = Color.Green
                 )
@@ -179,14 +184,14 @@ private fun FeedbackStatItem(
 
 @Composable
 private fun FeedbackCard(
-    feedback: CitizenFeedback,
+    feedback: CitizenFeedbackData,
     onResolve: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = getFeedbackTypeColor(feedback.type)
+            containerColor = getFeedbackTypeColor(feedback.category)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -200,29 +205,29 @@ private fun FeedbackCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = getFeedbackTypeIcon(feedback.type),
+                        imageVector = getFeedbackTypeIcon(feedback.category),
                         contentDescription = null,
-                        tint = getFeedbackTypeIconColor(feedback.type),
+                        tint = getFeedbackTypeIconColor(feedback.category),
                         modifier = Modifier.size(20.dp)
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
-                        text = getFeedbackTypeLabel(feedback.type),
+                        text = getFeedbackTypeLabel(feedback.category),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = getFeedbackTypeIconColor(feedback.type)
+                        color = getFeedbackTypeIconColor(feedback.category)
                     )
                 }
                 
                 Text(
-                    text = getPriorityLabel(feedback.priority),
+                    text = getUrgencyLabel(feedback.urgency),
                     fontSize = 12.sp,
-                    color = getPriorityColor(feedback.priority),
+                    color = getUrgencyColor(feedback.urgency),
                     modifier = Modifier
                         .background(
-                            color = getPriorityColor(feedback.priority).copy(alpha = 0.2f),
+                            color = getUrgencyColor(feedback.urgency).copy(alpha = 0.2f),
                             shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -292,7 +297,7 @@ private fun FeedbackCard(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = feedback.message,
+                text = feedback.content,
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -301,20 +306,14 @@ private fun FeedbackCard(
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = getFeedbackSourceLabel(feedback.source),
+                    text = feedback.createdAt,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
-            Text(
-                text = feedback.createdAt,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
             }
         }
     }
@@ -406,6 +405,26 @@ private fun getFeedbackSourceLabel(source: com.citysimulator.game.data.model.Fee
         com.citysimulator.game.data.model.FeedbackSource.EDUCATION_GROUP -> "教育组织"
         com.citysimulator.game.data.model.FeedbackSource.HEALTH_GROUP -> "健康组织"
         else -> "其他"
+    }
+}
+
+@Composable
+private fun getUrgencyLabel(urgency: FeedbackUrgency): String {
+    return when (urgency) {
+        FeedbackUrgency.LOW -> "低"
+        FeedbackUrgency.MEDIUM -> "中"
+        FeedbackUrgency.HIGH -> "高"
+        FeedbackUrgency.CRITICAL -> "紧急"
+    }
+}
+
+@Composable
+private fun getUrgencyColor(urgency: FeedbackUrgency): Color {
+    return when (urgency) {
+        FeedbackUrgency.LOW -> Color(0xFF4CAF50) // 绿色
+        FeedbackUrgency.MEDIUM -> Color(0xFF2196F3) // 蓝色
+        FeedbackUrgency.HIGH -> Color(0xFFFF9800) // 橙色
+        FeedbackUrgency.CRITICAL -> Color(0xFFF44336) // 红色
     }
 }
 

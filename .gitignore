@@ -30,3 +30,4 @@ node_modules/
 # Misc
 .DS_Store
 *.log
+"tools/gradle/" 
